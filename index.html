@@ -1,158 +1,89 @@
-<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html><html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulador PETR4</title>
+  <title>Simulador de Book - Bots</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #121212;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      background: #f4f4f4;
       margin: 0;
-      padding: 10px;
+      padding: 0;
     }
-
-    h2 {
-      margin: 10px;
-    }
-
     .container {
       display: flex;
-      flex-direction: row;
-      justify-content: center;
-      gap: 20px;
-      width: 100%;
-      max-width: 900px;
-      margin-top: 20px;
-    }
-
-    .book {
-      background: #1e1e1e;
-      padding: 10px;
-      border-radius: 10px;
-      flex: 1;
-      max-height: 400px;
-      overflow-y: auto;
-    }
-
-    .book h3 {
-      text-align: center;
-      margin-top: 0;
-    }
-
-    .order-row {
-      display: flex;
+      flex-wrap: wrap;
       justify-content: space-between;
-      padding: 5px 0;
-      border-bottom: 1px solid #333;
+      padding: 10px;
     }
-
-    .order-row span {
-      width: 33%;
+    .book, .portfolio, .history, .chart {
+      background: #fff;
+      border-radius: 8px;
+      padding: 10px;
+      margin: 10px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .book {
+      flex: 1 1 45%;
+      max-height: 300px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    .book.buy { border: 2px solid green; }
+    .book.sell { border: 2px solid red; }
+    .book table { width: 100%; border-collapse: collapse; }
+    .book th, .book td {
+      border-bottom: 1px solid #ccc;
       text-align: center;
+      padding: 2px;
     }
-
-    .buy { background-color: #002b36; }
-    .sell { background-color: #4b0000; }
-
-    .controls {
-      margin-top: 20px;
-    }
-
-    button {
-      padding: 10px 15px;
+    .portfolio, .history { flex: 1 1 100%; font-size: 14px; }
+    .chart { flex: 1 1 100%; height: 300px; }
+    #rotateBtn {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: #333;
+      color: #fff;
+      padding: 8px;
       border: none;
-      border-radius: 5px;
-      background: #007acc;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-      margin-right: 10px;
+      border-radius: 4px;
     }
   </style>
 </head>
 <body>
-
-  <h2>Simulador de Book de Ofertas - PETR4</h2>
-
-  <div class="controls">
-    <button onclick="girarTela()">Girar Tela</button>
-  </div>
-
+  <button id="rotateBtn">Girar Tela</button>
   <div class="container">
-    <div class="book" id="bookCompra">
-      <h3>Book de Compra</h3>
+    <div class="book buy">
+      <h3>Book de Compras</h3>
+      <table id="buyBook"><thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead><tbody></tbody></table>
     </div>
-    <div class="book" id="bookVenda">
-      <h3>Book de Venda</h3>
+    <div class="book sell">
+      <h3>Book de Vendas</h3>
+      <table id="sellBook"><thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead><tbody></tbody></table>
+    </div>
+    <div class="portfolio">
+      <h3>Portfólios</h3>
+      <div id="portfolios"></div>
+    </div>
+    <div class="history">
+      <h3>Histórico de Negociações</h3>
+      <ul id="history"></ul>
+    </div>
+    <div class="chart">
+      <canvas id="candlestickChart" width="600" height="300"></canvas>
     </div>
   </div>
-
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-    let ciclo = 0;
-
-    // Função que simula o Bradesco lançando ordens a cada segundo
-    function simularOrdemBradesco() {
-      const tipo = Math.random() > 0.5 ? 'compra' : 'venda';
-      const quantidade = Math.floor(Math.random() * 500 + 100) * 100;
-      const precoBase = 32.00;
-      const preco = (precoBase + (Math.random() - 0.5)).toFixed(2);
-
-      const order = {
-        banco: 'Bradesco',
-        quantidade: quantidade,
-        preco: parseFloat(preco)
-      };
-
-      adicionarOrdem(tipo, order);
-    }
-
-    // Adiciona ordem no book
-    function adicionarOrdem(tipo, ordem) {
-      const container = tipo === 'compra' ? document.getElementById("bookCompra") : document.getElementById("bookVenda");
-
-      const linha = document.createElement("div");
-      linha.classList.add("order-row");
-      linha.classList.add(tipo === 'compra' ? "buy" : "sell");
-
-      const banco = document.createElement("span");
-      banco.textContent = ordem.banco;
-      const qtd = document.createElement("span");
-      qtd.textContent = ordem.quantidade.toLocaleString();
-      const preco = document.createElement("span");
-      preco.textContent = ordem.preco.toFixed(2).replace('.', ',');
-
-      linha.appendChild(banco);
-      linha.appendChild(qtd);
-      linha.appendChild(preco);
-
-      container.appendChild(linha);
-
-      // Limita para no máximo 20 linhas
-      while (container.children.length > 21) {
-        container.removeChild(container.children[1]);
+    // Script será adicionado na próxima etapa: lógica de bots, ordens, histórico, portfólios e gráfico.
+  </script>
+  <script>
+    document.getElementById("rotateBtn").addEventListener("click", () => {
+      if (screen.orientation) {
+        screen.orientation.lock("landscape").catch(() => alert("Não foi possível girar a tela."));
       }
-    }
-
-    // Gira a tela do celular
-    function girarTela() {
-      if (screen.orientation && screen.orientation.lock) {
-        const nova = screen.orientation.type.startsWith("portrait") ? "landscape" : "portrait";
-        screen.orientation.lock(nova).catch(console.error);
-      } else {
-        alert("Seu navegador não suporta o bloqueio de rotação.");
-      }
-    }
-
-    // Timer global de 1 segundo
-    setInterval(() => {
-      ciclo++;
-      simularOrdemBradesco();
-    }, 1000);
+    });
   </script>
 </body>
 </html>
