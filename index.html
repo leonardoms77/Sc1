@@ -1,35 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Teste da API SimCompanies</title>
+  <title>Book de Ofertas PETR4</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px; text-align: center; border: 1px solid #ccc; }
+    .compra { background-color: #d4f4dd; }
+    .venda { background-color: #fddddd; }
+    .form { display: flex; gap: 10px; margin-bottom: 20px; justify-content: center; }
+    .form input, .form select, .form button { padding: 5px; font-size: 14px; }
+  </style>
 </head>
 <body>
-  <h1>Testar API - Motor de Foguete Q4</h1>
-  <button onclick="buscarPreco()">Buscar Preço</button>
-  <p id="resultado">Esperando...</p>
 
-  <script>
-    async function buscarPreco() {
-      const itemId = 126; // ID do Rocket Engine
-      const qualidade = 4;
-      const url = `https://api.simcompanies.com/v3/market/1/${itemId}/${qualidade}`;
+<h1>Book de Ofertas PETR4</h1>
 
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
+<div class="form">
+  <select id="tipo">
+    <option value="compra">Compra</option>
+    <option value="venda">Venda</option>
+  </select>
+  <input type="number" id="preco" placeholder="Preço" step="0.01">
+  <input type="number" id="quantidade" placeholder="Quantidade">
+  <button onclick="inserirOrdem('UBS Pactual')">Enviar Ordem</button>
+</div>
 
-        if (data && data.length > 0) {
-          const preco = data[0].price;
-          document.getElementById("resultado").innerText = `Preço encontrado: $${preco}`;
-        } else {
-          document.getElementById("resultado").innerText = "Nenhum preço encontrado.";
-        }
-      } catch (error) {
-        document.getElementById("resultado").innerText = "Erro ao buscar dados.";
-        console.error(error);
-      }
-    }
-  </script>
+<h3>Ofertas de Venda</h3>
+<table id="vendas">
+  <tr><th>Preço</th><th>Qtd</th><th>Player</th></tr>
+</table>
+
+<h3>Ofertas de Compra</h3>
+<table id="compras">
+  <tr><th>Preço</th><th>Qtd</th><th>Player</th></tr>
+</table>
+
+<script>
+const compras = []
+const vendas = []
+
+function atualizarTabelas() {
+  const tabelaCompras = document.getElementById('compras')
+  const tabelaVendas = document.getElementById('vendas')
+
+  // Limpa mantendo cabeçalho
+  tabelaCompras.innerHTML = '<tr><th>Preço</th><th>Qtd</th><th>Player</th></tr>'
+  tabelaVendas.innerHTML = '<tr><th>Preço</th><th>Qtd</th><th>Player</th></tr>'
+
+  compras.sort((a, b) => b.preco - a.preco)
+  vendas.sort((a, b) => a.preco - b.preco)
+
+  compras.forEach(o => {
+    const row = tabelaCompras.insertRow()
+    row.className = 'compra'
+    row.innerHTML = `<td>${o.preco.toFixed(2)}</td><td>${o.qtd}</td><td>${o.player}</td>`
+  })
+
+  vendas.forEach(o => {
+    const row = tabelaVendas.insertRow()
+    row.className = 'venda'
+    row.innerHTML = `<td>${o.preco.toFixed(2)}</td><td>${o.qtd}</td><td>${o.player}</td>`
+  })
+}
+
+function inserirOrdem(player) {
+  const tipo = document.getElementById('tipo').value
+  const preco = parseFloat(document.getElementById('preco').value)
+  const qtd = parseInt(document.getElementById('quantidade').value)
+
+  if (isNaN(preco) || isNaN(qtd)) {
+    alert('Preencha preço e quantidade corretamente.')
+    return
+  }
+
+  const ordem = { preco, qtd, player }
+
+  if (tipo === 'compra') compras.push(ordem)
+  else vendas.push(ordem)
+
+  atualizarTabelas()
+}
+
+// Simula bots enviando ordens
+const players = ['Credit Suisse', 'Morgan Stanley', 'Merrill Lynch', 'XP Investimentos']
+
+function ordemAleatoria() {
+  const tipo = Math.random() > 0.5 ? 'compra' : 'venda'
+  const precoBase = 38
+  const preco = precoBase + (Math.random() - 0.5) * 1.5
+  const qtd = Math.floor(Math.random() * 200 + 50)
+  const player = players[Math.floor(Math.random() * players.length)]
+  const ordem = { preco: parseFloat(preco.toFixed(2)), qtd, player }
+
+  if (tipo === 'compra') compras.push(ordem)
+  else vendas.push(ordem)
+
+  atualizarTabelas()
+}
+
+// Dispara bots a cada 4 segundos
+setInterval(ordemAleatoria, 4000)
+</script>
+
 </body>
 </html>
