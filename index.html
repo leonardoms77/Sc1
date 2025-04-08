@@ -1,209 +1,178 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador PnL - Petrobras IPO</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador PETR4</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #111;
-      color: #eee;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    header {
+      background-color: #333;
+      color: white;
+      padding: 10px;
+      text-align: center;
+    }
+    main {
       display: flex;
       flex-direction: column;
-      align-items: center;
       padding: 10px;
     }
-
-    #books {
+    .books {
       display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 10px;
+      justify-content: space-between;
+      margin-bottom: 10px;
     }
-
     table {
       border-collapse: collapse;
-      width: 100%;
+      width: 48%;
       font-size: 12px;
     }
-
     th, td {
-      border: 1px solid #555;
-      padding: 4px;
-      text-align: right;
+      border: 1px solid #ddd;
+      padding: 6px;
+      text-align: center;
     }
-
     th {
-      background-color: #222;
-      color: #fff;
+      background-color: #f2f2f2;
     }
-
     .buy {
-      background-color: #003300;
+      background-color: #d4edda;
     }
-
     .sell {
-      background-color: #330000;
+      background-color: #f8d7da;
     }
-
-    .executing {
-      background-color: #666600;
-      color: #fff;
+    .executada {
+      background-color: #ffc107 !important;
     }
-
-    #ipoPanel {
-      background: #222;
-      color: #fff;
+    .painel {
+      background: #fff;
       padding: 10px;
-      border: 1px solid #555;
-      margin-top: 10px;
-      width: 100%;
-      max-width: 500px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
     }
-
-    button {
+    #girarBtn {
       margin-top: 10px;
+      padding: 5px 10px;
     }
   </style>
 </head>
 <body>
+  <header>
+    <h1>Simulador de Book PETR4</h1>
+  </header>
+  <main>
+    <div class="painel">
+      <p><strong>Ações Restantes do IPO:</strong> <span id="acoesRestantes">8.000.000.000</span></p>
+      <p><strong>Capital Captado:</strong> R$ <span id="capitalCaptado">0,00</span></p>
+      <button id="girarBtn" onclick="girarTela()">Girar Tela</button>
+    </div><div class="books">
+  <table id="buyBook">
+    <thead>
+      <tr><th>Banco</th><th>Qtde</th><th>Preço</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-  <h2>Simulador Petrobras IPO</h2>
+  <table id="sellBook">
+    <thead>
+      <tr><th>Banco</th><th>Qtde</th><th>Preço</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-  <div id="books">
-    <div>
-      <h3>Book de Compras</h3>
-      <table id="buyBook">
-        <thead>
-          <tr><th>Banco</th><th>Qtde</th><th>Preço</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
+  </main>  <script>
+    let acoesRestantes = 8000000000;
+    let capitalCaptado = 0;
 
-    <div>
-      <h3>Book de Vendas</h3>
-      <table id="sellBook">
-        <thead>
-          <tr><th>Banco</th><th>Qtde</th><th>Preço</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </div>
+    const acoesSpan = document.getElementById('acoesRestantes');
+    const capitalSpan = document.getElementById('capitalCaptado');
+    const sellBookBody = document.querySelector('#sellBook tbody');
 
-  <div id="ipoPanel">
-    <p>Ações ainda disponíveis no IPO: <span id="acoesRestantes">8000000000</span></p>
-    <p>Capital captado: R$ <span id="capitalCaptado">0</span></p>
-  </div>
+    const players = [
+      { nome: "UBS Pactual", caixa: 700e6 },
+      { nome: "Credit Suisse", caixa: 700e6 },
+      { nome: "XP", caixa: 700e6 },
+      { nome: "Morgan Stanley", caixa: 700e6 },
+      { nome: "Merrill Lynch", caixa: 700e6 }
+    ];
 
-  <button onclick="girarTela()">Girar tela</button>
+    const bradesco = { nome: "Bradesco" };
+    const sellOrders = [];
 
-      <script>
-  let acoesRestantes = 8000000000;
-  let capitalCaptado = 0;
+    function gerarLoteAleatorio() {
+      return Math.floor(Math.random() * 10 + 1) * 100;
+    }
 
-  const acoesSpan = document.getElementById('acoesRestantes');
-  const capitalSpan = document.getElementById('capitalCaptado');
+    function gerarPrecoAleatorio() {
+      return parseFloat((27 + Math.random()).toFixed(2));
+    }
 
-  const buyBookBody = document.querySelector('#buyBook tbody');
-  const sellBookBody = document.querySelector('#sellBook tbody');
+    function gerarOrdemBradesco() {
+      if (acoesRestantes <= 0) return;
+      const quantidade = gerarLoteAleatorio();
+      if (acoesRestantes < quantidade) return;
 
-  const players = [
-    { nome: "UBS Pactual", caixa: 700e6 },
-    { nome: "Credit Suisse", caixa: 700e6 },
-    { nome: "XP", caixa: 700e6 },
-    { nome: "Morgan Stanley", caixa: 700e6 },
-    { nome: "Merrill Lynch", caixa: 700e6 }
-  ];
+      const preco = gerarPrecoAleatorio();
+      sellOrders.push({ banco: bradesco.nome, qtde: quantidade, preco, bradesco: true });
+      atualizarBook();
+    }
 
-  const bradesco = {
-    nome: "Bradesco",
-    estoque: acoesRestantes
-  };
+    function executarOrdens() {
+      for (let i = sellOrders.length - 1; i >= 0; i--) {
+        const ordem = sellOrders[i];
+        const comprador = players[Math.floor(Math.random() * players.length)];
+        const custo = ordem.qtde * ordem.preco;
 
-  const sellOrders = [];
+        if (comprador.caixa >= custo) {
+          comprador.caixa -= custo;
 
-  function gerarLoteAleatorio() {
-    return Math.floor(Math.random() * 10 + 1) * 100; // múltiplos de 100
-  }
+          if (ordem.bradesco) {
+            acoesRestantes -= ordem.qtde;
+            capitalCaptado += custo;
+            acoesSpan.textContent = acoesRestantes.toLocaleString();
+            capitalSpan.textContent = capitalCaptado.toLocaleString(undefined, { minimumFractionDigits: 2 });
+          }
 
-  function gerarPrecoAleatorio() {
-    return parseFloat((27 + Math.random() * 1).toFixed(2)); // entre 27.00 e 28.00
-  }
-
-  function gerarOrdemBradesco() {
-    if (acoesRestantes <= 0) return;
-
-    const quantidade = gerarLoteAleatorio();
-    if (acoesRestantes < quantidade) return;
-
-    const preco = gerarPrecoAleatorio();
-    sellOrders.push({ banco: bradesco.nome, qtde: quantidade, preco, bradesco: true });
-
-    atualizarBook();
-  }
-
-  function executarOrdens() {
-    const compradores = players.filter(p => p.nome !== "Bradesco");
-
-    for (let i = sellOrders.length - 1; i >= 0; i--) {
-      const ordem = sellOrders[i];
-      const comprador = compradores[Math.floor(Math.random() * compradores.length)];
-
-      const custo = ordem.qtde * ordem.preco;
-
-      if (comprador.caixa >= custo) {
-        // Executar compra
-        comprador.caixa -= custo;
-
-        if (ordem.bradesco) {
-          acoesRestantes -= ordem.qtde;
-          capitalCaptado += custo;
-
-          acoesSpan.textContent = acoesRestantes.toLocaleString();
-          capitalSpan.textContent = capitalCaptado.toLocaleString(undefined, { minimumFractionDigits: 2 });
+          sellOrders.splice(i, 1);
         }
+      }
+      atualizarBook();
+    }
 
-        // Remove ordem executada
-        sellOrders.splice(i, 1);
+    function atualizarBook() {
+      sellBookBody.innerHTML = '';
+      sellOrders.slice(0, 20).forEach(ordem => {
+        const row = document.createElement('tr');
+        row.className = 'sell';
+        row.innerHTML = `
+          <td>${ordem.banco}</td>
+          <td>${ordem.qtde.toLocaleString()}</td>
+          <td>R$ ${ordem.preco.toFixed(2)}</td>
+        `;
+        sellBookBody.appendChild(row);
+      });
+    }
+
+    function girarTela() {
+      if (screen.orientation && screen.orientation.lock) {
+        document.documentElement.requestFullscreen().then(() => {
+          screen.orientation.lock("landscape").catch(err => {
+            alert("Seu navegador não permite mudar a orientação: " + err);
+          });
+        });
+      } else {
+        alert("Seu navegador não suporta esta função.");
       }
     }
 
-    atualizarBook();
-  }
-
-  function atualizarBook() {
-    sellBookBody.innerHTML = '';
-    sellOrders.slice(0, 20).forEach(ordem => {
-      const row = document.createElement('tr');
-      row.className = 'sell';
-      row.innerHTML = `
-        <td>${ordem.banco}</td>
-        <td>${ordem.qtde.toLocaleString()}</td>
-        <td>R$ ${ordem.preco.toFixed(2)}</td>
-      `;
-      sellBookBody.appendChild(row);
-    });
-  }
-
-  function girarTela() {
-    if (screen.orientation && screen.orientation.lock) {
-      document.documentElement.requestFullscreen().then(() => {
-        screen.orientation.lock("landscape").catch(err => {
-          alert("Seu navegador não permite mudar a orientação: " + err);
-        });
-      });
-    } else {
-      alert("Seu navegador não suporta esta função.");
-    }
-  }
-
-  // Timer para gerar ordens e executar
-  setInterval(() => {
-    gerarOrdemBradesco();
-    executarOrdens();
-  }, 1000);
-  </script>
-</body>
-  </html>
+    setInterval(() => {
+      gerarOrdemBradesco();
+      executarOrdens();
+    }, 1000);
+  </script></body>
+</html>
