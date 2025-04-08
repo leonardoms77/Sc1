@@ -1,176 +1,94 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Book de PETR4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador PETR4</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f3f3f3;
+      background-color: #f4f4f4;
       margin: 0;
       padding: 0;
     }
-
-    #painel-topo {
-      background-color: #222;
-      color: #fff;
-      padding: 10px;
+    h1 {
       text-align: center;
-      font-size: 20px;
+      background: #222;
+      color: white;
+      margin: 0;
+      padding: 10px;
     }
-
-    #painel-container {
+    .book-container {
       display: flex;
-      flex-wrap: wrap;
-      padding: 10px;
+      justify-content: center;
+      gap: 20px;
+      padding: 20px;
     }
-
-    #book-compra, #book-venda {
-      width: 45%;
-      max-height: 400px;
-      overflow-y: auto;
-      background-color: #fff;
-      margin: 10px;
+    .book {
+      background: white;
       border: 1px solid #ccc;
-      border-radius: 8px;
+      border-radius: 10px;
+      overflow-y: auto;
+      max-height: 400px;
+      width: 45%;
       padding: 10px;
     }
-
-    #book-compra h3, #book-venda h3 {
-      margin-top: 0;
+    .book h2 {
+      text-align: center;
     }
-
-    .ordem {
+    .order {
       display: flex;
       justify-content: space-between;
-      padding: 4px;
-      font-family: monospace;
+      padding: 2px 5px;
     }
-
-    .compra {
+    .buy {
       background-color: #d0f0d0;
     }
-
-    .venda {
+    .sell {
       background-color: #f0d0d0;
     }
-
-    .executando {
-      background-color: #ffee00;
-    }
-
-    #painel-capitalizacao {
-      width: 90%;
-      background-color: #e9e9ff;
-      padding: 10px;
-      margin: 10px auto;
-      border-radius: 5px;
-      font-family: monospace;
+    .executing {
+      background-color: #d4b106 !important;
     }
   </style>
 </head>
 <body>
-
-  <div id="painel-topo">Simulador PETR4 - Book de Ofertas</div>
-
-  <div id="painel-capitalizacao">
-    <strong>Capitalização da Petrobras</strong><br>
-    Ações totais do IPO: <span id="acoes-totais">8.000.000.000</span><br>
-    Ações vendidas: <span id="acoes-vendidas">0</span><br>
-    Valor arrecadado: R$ <span id="valor-arrecadado">0,00</span>
-  </div>
-
-  <div id="painel-container">
-    <div id="book-compra">
-      <h3>Book de Compra</h3>
-      <div id="lista-compra"></div>
+  <h1>Simulador PETR4</h1>
+  <div class="book-container">
+    <div class="book" id="bookCompra">
+      <h2>Book de Compra</h2>
     </div>
-
-    <div id="book-venda">
-      <h3>Book de Venda</h3>
-      <div id="lista-venda"></div>
+    <div class="book" id="bookVenda">
+      <h2>Book de Venda</h2>
     </div>
-  </div>
+  </div>  <script>
+    let acoesRestantesHoje = 400000;
 
-  <!-- Scripts aqui depois -->
-<script>
-  let ciclo = 0;
-  const ciclosTotais = 420;
-  let intervalo = null;
-
-  function iniciarSimulacao() {
-    if (intervalo) return;
-
-    intervalo = setInterval(() => {
-      ciclo++;
-
-      document.title = `Ciclo ${ciclo} / ${ciclosTotais}`;
-
-      // Aqui você pode chamar os scripts dos players e do Bradesco
-
-  <script>
-  const totalAcoesDiarias = 400000;
-  let acoesRestantesHoje = totalAcoesDiarias;
-
-  function bradescoVende() {
-    if (acoesRestantesHoje <= 0) return;
-
-    // Gera lote aleatório entre 1000 e 10000
-    let lote = Math.floor(Math.random() * 91 + 10) * 100;
-
-    // Garante que não passe do limite diário
-    if (lote > acoesRestantesHoje) {
-      lote = acoesRestantesHoje;
+    function adicionarOrdemVenda(nome, quantidade, preco) {
+      const div = document.createElement('div');
+      div.className = 'order sell';
+      div.textContent = `${nome} - ${quantidade} @ R$ ${preco.toFixed(2)}`;
+      document.getElementById("bookVenda").appendChild(div);
     }
 
-    // Preço aleatório entre R$38 e R$42 com 0.01 de variação
-    const preco = (Math.floor(Math.random() * 401) + 3800) / 100;
+    function bradescoVende() {
+      if (acoesRestantesHoje <= 0) return;
 
-    adicionarOrdemVenda("Bradesco", lote, preco);
-    acoesRestantesHoje -= lote;
-  }
-</script>
-      executarCiclo();
-
-      if (ciclo >= ciclosTotais) {
-        clearInterval(intervalo);
-        intervalo = null;
-        console.log("Fim do pregão!");
+      let lote = Math.floor(Math.random() * 91 + 10) * 100;
+      if (lote > acoesRestantesHoje) {
+        lote = acoesRestantesHoje;
       }
-    }, 1000); // 1 segundo por ciclo
-  }
 
-  function pausarSimulacao() {
-    clearInterval(intervalo);
-    intervalo = null;
-  }
-
-  function executarCiclo() {
-    // Aqui será onde os bots colocam ordens
-    if (typeof cicloExecutado === "function") {
-      cicloExecutado(ciclo); // função que você define fora, onde quiser
+      const preco = (Math.floor(Math.random() * 401) + 3800) / 100;
+      adicionarOrdemVenda("Bradesco", lote, preco);
+      acoesRestantesHoje -= lote;
     }
-  }
 
-  // Botões de controle
-  const btns = document.createElement('div');
-  btns.style.textAlign = "center";
-  btns.style.marginTop = "10px";
-  btns.innerHTML = `
-    <button onclick="iniciarSimulacao()">Iniciar</button>
-    <button onclick="pausarSimulacao()">Pausar</button>
-  `;
-  document.body.appendChild(btns);
-</script>
+    function cicloExecutado() {
+      bradescoVende();
+      // outros bots aqui futuramente
+    }
 
-<script>
-  function cicloExecutado(ciclo) {
-    // Exemplo: Bradesco lança ordens de venda
-    bradescoVende();
-    botsColocamOrdens();
-    executarBook();
-  }
-</script>
-  
-</body>
+    // Timer global - 1 segundo = 1 ciclo
+    setInterval(cicloExecutado, 1000);
+  </script></body>
 </html>
