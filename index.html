@@ -1,63 +1,140 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html><html>
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Mercado - PETR4</title>
+  <title>Simulador de Book de Ofertas - PEtR4</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 10px; display: flex; flex-direction: column; align-items: center; }
-    h1 { text-align: center; }
-    #bookContainer { display: flex; justify-content: space-between; width: 90%; margin-bottom: 10px; }
-    .book { width: 45%; max-height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
-    .book h3 { text-align: center; }
-    .buy { background-color: #d4f4dd; }
-    .sell { background-color: #f4d4d4; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #999; padding: 4px; text-align: right; }
-    #manualForm, #botConfig, #portfolio { margin: 10px 0; width: 90%; }
-    #manualForm input, #botConfig input, #manualForm select, #botConfig select { margin-right: 5px; }
-    #portfolio table { margin-top: 10px; width: 100%; }
-    .paused { background-color: #ff0; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      justify-content: space-between;
+    }
+    .book, .portfolio {
+      background: #fff;
+      padding: 10px;
+      border-radius: 10px;
+      width: 48%;
+      height: 500px;
+      overflow-y: scroll;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .book h2, .portfolio h2 {
+      text-align: center;
+    }
+    .buy { color: green; }
+    .sell { color: red; }
+    .order {
+      display: flex;
+      justify-content: space-between;
+      border-bottom: 1px solid #ddd;
+      padding: 5px;
+    }
+    .controls {
+      margin-top: 20px;
+    }
+    .controls input {
+      margin: 5px;
+    }
   </style>
 </head>
 <body>
-<h1>Simulador de Mercado PETR4</h1><div id="bookContainer">
-  <div class="book buy">
-    <h3>Book de Compras</h3>
-    <table id="buyBook"></table>
-  </div>
-  <div class="book sell">
-    <h3>Book de Vendas</h3>
-    <table id="sellBook"></table>
-  </div>
-</div><div id="manualForm">
-  <h3>Inserir Ordem Manual</h3>
-  <select id="orderType">
-    <option value="buy">Compra</option>
-    <option value="sell">Venda</option>
-  </select>
-  Quantidade: <input type="number" id="manualQty" value="100">
-  Preço: <input type="number" step="0.01" id="manualPrice" value="30">
-  <button onclick="submitManualOrder()">Enviar</button>
-</div><div id="botConfig">
-  <h3>Configurar Robô UBS</h3>
-  <select id="botMode">
-    <option value="marketBuy">Compra a Mercado</option>
-    <option value="below">Ordem X abaixo</option>
-  </select>
-  Distância/Preço (ex: 0.20): <input type="number" step="0.01" id="botDistance" value="0.20">
-  Quantidade: <input type="number" id="botQty" value="100">
-</div><div>
-  <button onclick="togglePause()">Pausar/Continuar</button>
-  <button onclick="saveState()">Salvar Jogo</button>
-  <button onclick="loadState()">Carregar Jogo</button>
-</div><div id="portfolio">
-  <h3>Portfólios</h3>
-  <table id="portTable">
-    <thead>
-      <tr><th>Player</th><th>Caixa</th><th>Ações</th><th>Preço Médio</th><th>Valor Total</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-</div><script>
-// Lógica do simulador será adicionada aqui
-</script></body>
-</html>
+  <h1>Simulador de Book de Ofertas - PETR4</h1>  <div class="container">
+    <div class="book">
+      <h2>Compras</h2>
+      <div id="buyBook"></div>
+    </div><div class="book">
+  <h2>Vendas</h2>
+  <div id="sellBook"></div>
+</div>
+
+  </div>  <div class="portfolio">
+    <h2>Meu Portfólio</h2>
+    <p>Caixa: R$ <span id="cash">700000000</span></p>
+    <p>Ações: <span id="shares">0</span></p>
+    <p>Preço Médio: R$ <span id="avgPrice">0</span></p>
+    <p>Valor Total das Ações: R$ <span id="totalValue">0</span></p>
+  </div>  <div class="controls">
+    <h2>Inserir Ordem Manual</h2>
+    <label>Tipo:
+      <select id="orderType">
+        <option value="buy">Compra</option>
+        <option value="sell">Venda</option>
+      </select>
+    </label>
+    <label>Preço: <input type="number" id="price" /></label>
+    <label>Quantidade: <input type="number" id="quantity" /></label>
+    <button onclick="submitOrder()">Enviar Ordem</button>
+  </div>  <script>
+    let buyOrders = [];
+    let sellOrders = [];
+    let cash = 700000000;
+    let shares = 0;
+    let totalSpent = 0;
+
+    function updateBooks() {
+      const buyDiv = document.getElementById('buyBook');
+      const sellDiv = document.getElementById('sellBook');
+      buyDiv.innerHTML = '';
+      sellDiv.innerHTML = '';
+      buyOrders.slice(0, 20).forEach(order => {
+        buyDiv.innerHTML += `<div class="order buy">${order.quantity} @ R$${order.price}</div>`;
+      });
+      sellOrders.slice(0, 20).forEach(order => {
+        sellDiv.innerHTML += `<div class="order sell">${order.quantity} @ R$${order.price}</div>`;
+      });
+    }
+
+    function updatePortfolio() {
+      document.getElementById('cash').textContent = cash.toFixed(2);
+      document.getElementById('shares').textContent = shares;
+      let avg = shares ? (totalSpent / shares) : 0;
+      document.getElementById('avgPrice').textContent = avg.toFixed(2);
+      document.getElementById('totalValue').textContent = (shares * getMarketPrice()).toFixed(2);
+    }
+
+    function getMarketPrice() {
+      if (sellOrders.length > 0) return sellOrders[0].price;
+      if (buyOrders.length > 0) return buyOrders[0].price;
+      return 30.00;
+    }
+
+    function matchOrders() {
+      while (buyOrders.length > 0 && sellOrders.length > 0 && buyOrders[0].price >= sellOrders[0].price) {
+        const quantity = Math.min(buyOrders[0].quantity, sellOrders[0].quantity);
+        const price = sellOrders[0].price;
+
+        if (cash < quantity * price) break;
+
+        buyOrders[0].quantity -= quantity;
+        sellOrders[0].quantity -= quantity;
+
+        if (buyOrders[0].quantity <= 0) buyOrders.shift();
+        if (sellOrders[0].quantity <= 0) sellOrders.shift();
+
+        cash -= quantity * price;
+        shares += quantity;
+        totalSpent += quantity * price;
+      }
+    }
+
+    function submitOrder() {
+      const type = document.getElementById('orderType').value;
+      const price = parseFloat(document.getElementById('price').value);
+      const quantity = parseInt(document.getElementById('quantity').value);
+      if (type === 'buy') {
+        buyOrders.push({ price, quantity });
+        buyOrders.sort((a, b) => b.price - a.price);
+      } else {
+        sellOrders.push({ price, quantity });
+        sellOrders.sort((a, b) => a.price - b.price);
+      }
+      updateBooks();
+    }
+
+    setInterval(() => {
+      matchOrders();
+      updateBooks
