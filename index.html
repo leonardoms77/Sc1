@@ -2,12 +2,34 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>SimCompanies Teste</title>
+  <title>Teste da API SimCompanies</title>
 </head>
 <body>
-  <h1>Motor de Foguete Q3</h1>
-  <p>Preço simulado: $ 4.520</p>
+  <h1>Testar API - Motor de Foguete Q3</h1>
+  <button onclick="buscarPreco()">Buscar Preço</button>
+  <p id="resultado">Esperando...</p>
 
-  <button onclick="alert('Isso é só um teste!')">Clique aqui</button>
+  <script>
+    async function buscarPreco() {
+      const itemId = 126; // ID do Rocket Engine
+      const qualidade = 3;
+      const url = `https://api.simcompanies.com/v3/market/1/${itemId}/${qualidade}`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+          const preco = data[0].price;
+          document.getElementById("resultado").innerText = `Preço encontrado: $${preco}`;
+        } else {
+          document.getElementById("resultado").innerText = "Nenhum preço encontrado.";
+        }
+      } catch (error) {
+        document.getElementById("resultado").innerText = "Erro ao buscar dados.";
+        console.error(error);
+      }
+    }
+  </script>
 </body>
 </html>
