@@ -38,21 +38,7 @@
       padding: 2px;
     }
     <div id="trade-history" style="margin-top: 20px;">
-  <h2>Histórico de Negociações</h2>
-  <table id="history-table" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr>
-        <th>Hora</th>
-        <th>Comprador</th>
-        <th>Vendedor</th>
-        <th>Quantidade</th>
-        <th>Preço</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-</div>
+  <h
     .portfolio, .history { flex: 1 1 100%; font-size: 14px; }
     .chart { flex: 1 1 100%; height: 300px; }
     #rotateBtn {
@@ -70,6 +56,22 @@
 <body>
   <button id="rotateBtn">Girar Tela</button>
   <div class="container">
+    <div id="trade-history" style="margin-top: 20px;">
+  <h2>Histórico de Negociações</h2>
+  <table id="history-table" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Hora</th>
+        <th>Comprador</th>
+        <th>Vendedor</th>
+        <th>Quantidade</th>
+        <th>Preço</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+    </div>
     <div class="book buy">
       <h3>Book de Compras</h3>
       <table id="buyBook"><thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead><tbody></tbody></table>
@@ -82,9 +84,22 @@
       <h3>Portfólios</h3>
       <div id="portfolios"></div>
     </div>
+    
     <div class="history">
-      <h3>Histórico de Negociações</h3>
-      <ul id="history"></ul>
+  <h3>Histórico de Negociações</h3>
+  <table id="history-table" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Hora</th>
+        <th>Comprador</th>
+        <th>Vendedor</th>
+        <th>Quantidade</th>
+        <th>Preço</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
     </div>
     <div class="chart">
       <canvas id="candlestickChart" width="600" height="300"></canvas>
