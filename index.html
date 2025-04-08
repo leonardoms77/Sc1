@@ -2,83 +2,76 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simulador de Book PnL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulador PETR4</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #f4f4f4;
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       margin: 0;
       padding: 10px;
     }
 
-    h2, h3 {
-      margin-bottom: 5px;
+    h2 {
+      margin: 10px;
     }
 
-    #book-container {
+    .container {
       display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      overflow-x: auto;
+      flex-direction: row;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+      max-width: 900px;
+      margin-top: 20px;
     }
 
     .book {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 5px;
-      width: 48%;
-      font-size: 12px;
-    }
-
-    .book h2 {
-      margin: 5px 0;
-      font-size: 14px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: 4px;
-      text-align: center;
-    }
-
-    th {
-      background: #ddd;
-      font-weight: bold;
-    }
-
-    .buy {
-      background: #d0f0d0;
-    }
-
-    .sell {
-      background: #f0d0d0;
-    }
-
-    .executing {
-      background-color: #ffd700 !important;
-    }
-
-    #ipo-panel {
-      margin: 10px 0;
+      background: #1e1e1e;
       padding: 10px;
-      background: #eef;
-      border-radius: 8px;
+      border-radius: 10px;
+      flex: 1;
+      max-height: 400px;
+      overflow-y: auto;
     }
 
-    #ipo-panel h3 {
+    .book h3 {
+      text-align: center;
       margin-top: 0;
     }
 
-    @media screen and (orientation: landscape) {
-      body {
-        font-size: 14px;
-      }
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px solid #333;
+    }
+
+    .order-row span {
+      width: 33%;
+      text-align: center;
+    }
+
+    .buy { background-color: #002b36; }
+    .sell { background-color: #4b0000; }
+
+    .controls {
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      background: #007acc;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      margin-right: 10px;
     }
   </style>
 </head>
@@ -86,106 +79,80 @@
 
   <h2>Simulador de Book de Ofertas - PETR4</h2>
 
-  <div id="ipo-panel">
-    <h3>Capitalização da Petrobras (IPO)</h3>
-    <p>Ações emitidas: <strong id="ipo-total">8.000.000.000</strong></p>
-    <p>Ações vendidas: <strong id="ipo-sold">0</strong></p>
-    <p>Valor arrecadado: R$ <strong id="ipo-raised">0,00</strong></p>
-    <p style="color: red; font-size: 0.9em;">
-      (A capitalização será ativada quando as ordens forem executadas)
-    </p>
+  <div class="controls">
+    <button onclick="girarTela()">Girar Tela</button>
   </div>
 
-  <div id="book-container">
-    <div class="book" id="buy-book">
-      <h2>Compras</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Banco</th>
-            <th>Qtd</th>
-            <th>Preço</th>
-          </tr>
-        </thead>
-        <tbody id="buy-orders"></tbody>
-      </table>
+  <div class="container">
+    <div class="book" id="bookCompra">
+      <h3>Book de Compra</h3>
     </div>
-
-    <div class="book" id="sell-book">
-      <h2>Vendas</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Banco</th>
-            <th>Qtd</th>
-            <th>Preço</th>
-          </tr>
-        </thead>
-        <tbody id="sell-orders"></tbody>
-      </table>
+    <div class="book" id="bookVenda">
+      <h3>Book de Venda</h3>
     </div>
   </div>
 
   <script>
-    const IPO_TOTAL = 8000000000;
-    let ipoSold = 0;
-    let ipoRaised = 0;
+    let ciclo = 0;
 
-    function updateIPOPanel() {
-      document.getElementById('ipo-total').innerText = IPO_TOTAL.toLocaleString();
-      document.getElementById('ipo-sold').innerText = ipoSold.toLocaleString();
-      document.getElementById('ipo-raised').innerText = ipoRaised.toLocaleString('pt-BR', {
-        minimumFractionDigits: 2
-      });
+    // Função que simula o Bradesco lançando ordens a cada segundo
+    function simularOrdemBradesco() {
+      const tipo = Math.random() > 0.5 ? 'compra' : 'venda';
+      const quantidade = Math.floor(Math.random() * 500 + 100) * 100;
+      const precoBase = 32.00;
+      const preco = (precoBase + (Math.random() - 0.5)).toFixed(2);
+
+      const order = {
+        banco: 'Bradesco',
+        quantidade: quantidade,
+        preco: parseFloat(preco)
+      };
+
+      adicionarOrdem(tipo, order);
     }
 
-    function onIPOExecuted(quantity, price) {
-      ipoSold += quantity;
-      ipoRaised += quantity * price;
-      updateIPOPanel();
+    // Adiciona ordem no book
+    function adicionarOrdem(tipo, ordem) {
+      const container = tipo === 'compra' ? document.getElementById("bookCompra") : document.getElementById("bookVenda");
+
+      const linha = document.createElement("div");
+      linha.classList.add("order-row");
+      linha.classList.add(tipo === 'compra' ? "buy" : "sell");
+
+      const banco = document.createElement("span");
+      banco.textContent = ordem.banco;
+      const qtd = document.createElement("span");
+      qtd.textContent = ordem.quantidade.toLocaleString();
+      const preco = document.createElement("span");
+      preco.textContent = ordem.preco.toFixed(2).replace('.', ',');
+
+      linha.appendChild(banco);
+      linha.appendChild(qtd);
+      linha.appendChild(preco);
+
+      container.appendChild(linha);
+
+      // Limita para no máximo 20 linhas
+      while (container.children.length > 21) {
+        container.removeChild(container.children[1]);
+      }
     }
 
-    updateIPOPanel();
-
-    const buyOrders = [
-      { bank: "UBS Pactual", quantity: 2000, price: 29.20 },
-      { bank: "Merrill Lynch", quantity: 1500, price: 29.10 },
-      { bank: "XP", quantity: 1000, price: 29.00 }
-    ];
-
-    const sellOrders = [
-      { bank: "Credit Suisse", quantity: 3000, price: 29.40 },
-      { bank: "Morgan Stanley", quantity: 2500, price: 29.50 },
-      { bank: "Bradesco", quantity: 2000, price: 29.60 }
-    ];
-
-    function renderOrders() {
-      const buyTbody = document.getElementById('buy-orders');
-      const sellTbody = document.getElementById('sell-orders');
-
-      buyTbody.innerHTML = '';
-      sellTbody.innerHTML = '';
-
-      buyOrders.sort((a, b) => b.price - a.price);
-      sellOrders.sort((a, b) => a.price - b.price);
-
-      buyOrders.forEach(order => {
-        const row = document.createElement('tr');
-        row.className = 'buy';
-        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity.toLocaleString()}</td><td>${order.price.toFixed(2)}</td>`;
-        buyTbody.appendChild(row);
-      });
-
-      sellOrders.forEach(order => {
-        const row = document.createElement('tr');
-        row.className = 'sell';
-        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity.toLocaleString()}</td><td>${order.price.toFixed(2)}</td>`;
-        sellTbody.appendChild(row);
-      });
+    // Gira a tela do celular
+    function girarTela() {
+      if (screen.orientation && screen.orientation.lock) {
+        const nova = screen.orientation.type.startsWith("portrait") ? "landscape" : "portrait";
+        screen.orientation.lock(nova).catch(console.error);
+      } else {
+        alert("Seu navegador não suporta o bloqueio de rotação.");
+      }
     }
 
-    renderOrders();
+    // Timer global de 1 segundo
+    setInterval(() => {
+      ciclo++;
+      simularOrdemBradesco();
+    }, 1000);
   </script>
-
 </body>
-  </html>
+</html>
