@@ -1,50 +1,104 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Simulador PnL - PEtR4</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simulador de Book PnL</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      margin: 10px;
-      background-color: #f4f4f4;
+      font-family: sans-serif;
+      background: #f4f4f4;
+      margin: 0;
+      padding: 10px;
     }
+
     h2, h3 {
-      text-align: center;
+      margin-bottom: 5px;
     }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      background-color: white;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 4px;
-      text-align: center;
-    }
-    th {
-      background-color: #ddd;
-    }
-    .book-container {
+
+    #book-container {
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      margin-top: 20px;
+      overflow-x: auto;
     }
+
     .book {
-      flex: 1;
+      background: white;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 5px;
+      width: 48%;
+      font-size: 12px;
+    }
+
+    .book h2 {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 4px;
+      text-align: center;
+    }
+
+    th {
+      background: #ddd;
+      font-weight: bold;
+    }
+
+    .buy {
+      background: #d0f0d0;
+    }
+
+    .sell {
+      background: #f0d0d0;
+    }
+
+    .executing {
+      background-color: #ffd700 !important;
+    }
+
+    #ipo-panel {
+      margin: 10px 0;
+      padding: 10px;
+      background: #eef;
+      border-radius: 8px;
+    }
+
+    #ipo-panel h3 {
+      margin-top: 0;
+    }
+
+    @media screen and (orientation: landscape) {
+      body {
+        font-size: 14px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <h2>Livro de Ofertas - PEtR4</h2>
+  <h2>Simulador de Book de Ofertas - PETR4</h2>
 
-  <div class="book-container">
-    <!-- Book de Compras -->
-    <div class="book">
-      <h3>Book de Compras</h3>
+  <div id="ipo-panel">
+    <h3>Capitalização da Petrobras (IPO)</h3>
+    <p>Ações emitidas: <strong id="ipo-total">8.000.000.000</strong></p>
+    <p>Ações vendidas: <strong id="ipo-sold">0</strong></p>
+    <p>Valor arrecadado: R$ <strong id="ipo-raised">0,00</strong></p>
+    <p style="color: red; font-size: 0.9em;">
+      (A capitalização será ativada quando as ordens forem executadas)
+    </p>
+  </div>
+
+  <div id="book-container">
+    <div class="book" id="buy-book">
+      <h2>Compras</h2>
       <table>
         <thead>
           <tr>
@@ -53,15 +107,12 @@
             <th>Preço</th>
           </tr>
         </thead>
-        <tbody id="buy-book">
-          <!-- Linhas geradas por JS -->
-        </tbody>
+        <tbody id="buy-orders"></tbody>
       </table>
     </div>
 
-    <!-- Book de Vendas -->
-    <div class="book">
-      <h3>Book de Vendas</h3>
+    <div class="book" id="sell-book">
+      <h2>Vendas</h2>
       <table>
         <thead>
           <tr>
@@ -70,12 +121,71 @@
             <th>Preço</th>
           </tr>
         </thead>
-        <tbody id="sell-book">
-          <!-- Linhas geradas por JS -->
-        </tbody>
+        <tbody id="sell-orders"></tbody>
       </table>
     </div>
   </div>
 
+  <script>
+    const IPO_TOTAL = 8000000000;
+    let ipoSold = 0;
+    let ipoRaised = 0;
+
+    function updateIPOPanel() {
+      document.getElementById('ipo-total').innerText = IPO_TOTAL.toLocaleString();
+      document.getElementById('ipo-sold').innerText = ipoSold.toLocaleString();
+      document.getElementById('ipo-raised').innerText = ipoRaised.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2
+      });
+    }
+
+    function onIPOExecuted(quantity, price) {
+      ipoSold += quantity;
+      ipoRaised += quantity * price;
+      updateIPOPanel();
+    }
+
+    updateIPOPanel();
+
+    const buyOrders = [
+      { bank: "UBS Pactual", quantity: 2000, price: 29.20 },
+      { bank: "Merrill Lynch", quantity: 1500, price: 29.10 },
+      { bank: "XP", quantity: 1000, price: 29.00 }
+    ];
+
+    const sellOrders = [
+      { bank: "Credit Suisse", quantity: 3000, price: 29.40 },
+      { bank: "Morgan Stanley", quantity: 2500, price: 29.50 },
+      { bank: "Bradesco", quantity: 2000, price: 29.60 }
+    ];
+
+    function renderOrders() {
+      const buyTbody = document.getElementById('buy-orders');
+      const sellTbody = document.getElementById('sell-orders');
+
+      buyTbody.innerHTML = '';
+      sellTbody.innerHTML = '';
+
+      buyOrders.sort((a, b) => b.price - a.price);
+      sellOrders.sort((a, b) => a.price - b.price);
+
+      buyOrders.forEach(order => {
+        const row = document.createElement('tr');
+        row.className = 'buy';
+        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity.toLocaleString()}</td><td>${order.price.toFixed(2)}</td>`;
+        buyTbody.appendChild(row);
+      });
+
+      sellOrders.forEach(order => {
+        const row = document.createElement('tr');
+        row.className = 'sell';
+        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity.toLocaleString()}</td><td>${order.price.toFixed(2)}</td>`;
+        sellTbody.appendChild(row);
+      });
+    }
+
+    renderOrders();
+  </script>
+
 </body>
-</html>
+  </html>
