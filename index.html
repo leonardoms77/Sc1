@@ -47,5 +47,53 @@
 
   </div>  <script>
     // Aqui você irá adicionar os scripts JavaScript depois.
-  </script></body>
+  </script>
+<script>
+// Configuração inicial do IPO
+const ipoTotal = 8_000_000_000; // 8 bilhões de ações
+let bradescoAcoesRestantes = 8_000_000_000;
+let bradescoAcoesVendidasHoje = 0;
+const acoesPorDia = 400_000;
+const ciclosPorDia = 420;
+let cicloAtual = 0;
+
+function gerarOrdemBradesco() {
+  if (bradescoAcoesRestantes <= 0) return;
+
+  // Calcula a quantidade a vender neste ciclo (dividido por 420 ciclos por dia)
+  let restanteHoje = acoesPorDia - bradescoAcoesVendidasHoje;
+  if (restanteHoje <= 0) return;
+
+  const maxLote = Math.min(restanteHoje, 20000); // até 20 mil por ciclo
+  const quantidade = Math.floor(Math.random() * (maxLote / 100)) * 100 + 100;
+
+  // Preço levemente abaixo do preço médio do mercado
+  const precoBase = precoAtual || 29.5;
+  const preco = +(precoBase - Math.random() * 0.20).toFixed(2);
+
+  // Simula ordem de venda do Bradesco
+  adicionarOrdem('venda', 'Bradesco', quantidade, preco);
+
+  bradescoAcoesVendidasHoje += quantidade;
+  bradescoAcoesRestantes -= quantidade;
+}
+
+// Atualiza a cada "ciclo" (1 segundo = 1 minuto de pregão)
+function cicloPregao() {
+  cicloAtual++;
+  if (cicloAtual > ciclosPorDia) {
+    cicloAtual = 1;
+    bradescoAcoesVendidasHoje = 0; // Resetar vendas do dia
+  }
+
+  gerarOrdemBradesco();
+
+  // Outras funções dos bots podem ser chamadas aqui
+}
+
+// Começa a simular os ciclos
+setInterval(cicloPregao, 1000);
+</script>
+  
+</body>
 </html>
