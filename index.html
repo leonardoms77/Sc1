@@ -74,7 +74,7 @@
 
     <div class="portfolio">
       <h3>Portfólios</h3>
-      <div id="portfolios"></div>
+      <div id="portfolios">Simulação em execução com bots fictícios.</div>
     </div>
 
     <div class="history">
@@ -92,14 +92,7 @@
         <tbody></tbody>
       </table>
     </div>
-
-    <div class="chart">
-      <canvas id="candlestickChart" width="600" height="300"></canvas>
-    </div>
-
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
     document.getElementById("rotateBtn").addEventListener("click", () => {
@@ -107,19 +100,18 @@
         screen.orientation.lock("landscape").catch(() => alert("Não foi possível girar a tela."));
       }
     });
-  </script>
 
-  <script>
-    // Dados fictícios para testes
-    const buyOrders = [
-      { bank: "Banco A", quantity: 1000, price: 10.50, time: Date.now() },
-      { bank: "Banco C", quantity: 500, price: 10.60, time: Date.now() }
-    ];
+    const bancos = ["Banco A", "Banco B", "Banco C", "Banco D", "Banco E"];
+    const buyOrders = [];
+    const sellOrders = [];
 
-    const sellOrders = [
-      { bank: "Banco B", quantity: 800, price: 10.40, time: Date.now() },
-      { bank: "Banco D", quantity: 600, price: 10.70, time: Date.now() }
-    ];
+    function gerarOrdem(éCompra = true) {
+      const banco = bancos[Math.floor(Math.random() * bancos.length)];
+      const quantity = Math.floor(Math.random() * 900) + 100;
+      const price = +(10 + Math.random()).toFixed(2);
+      const order = { bank: banco, quantity, price, time: Date.now() };
+      (éCompra ? buyOrders : sellOrders).push(order);
+    }
 
     function executarOrdens() {
       buyOrders.sort((a, b) => b.price - a.price || a.time - b.time);
@@ -192,11 +184,11 @@
       });
     }
 
-    // Executa a simulação a cada 1 segundo
-    setInterval(executarOrdens, 1000);
-
-    // Atualiza o book inicial
-    atualizarBook();
+    setInterval(() => {
+      gerarOrdem(true);
+      gerarOrdem(false);
+      executarOrdens();
+    }, 1500);
   </script>
 </body>
 </html>
