@@ -1,136 +1,139 @@
 <!DOCTYPE html><html lang="pt-br">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Book de Ofertas - PEtR4</title>
+  <title>Simulador de Book PETR4</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background-color: #f2f2f2;
+      font-family: sans-serif;
       margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
+      padding: 0;
+      background: #111;
+      color: #eee;
     }
     .container {
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 10px;
+      padding: 10px;
     }
     .book {
-      width: 45%;
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #ccc;
-      background: white;
+      background: #222;
+      padding: 10px;
+      max-height: 500px;
+      overflow-y: scroll;
+      border-radius: 10px;
     }
     .book h2 {
       text-align: center;
-      margin: 0;
-      padding: 10px;
-      background-color: #ddd;
-    }
-    .order {
-      display: flex;
-      justify-content: space-between;
-      padding: 5px 10px;
-      border-bottom: 1px solid #eee;
-    }
-    .buy {
-      background-color: #d1f7d1;
-      color: #222;
-    }
-    .sell {
-      background-color: #f7d1d1;
-      color: #222;
-    }
-    .executing {
-      background-color: #e6c200 !important;
-    }
-    .highlight {
-      box-shadow: inset 0 0 5px #00000044;
-      font-weight: bold;
-    }
-    .portfolio {
-      margin-top: 20px;
-      background: white;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
-    .portfolio h3 {
       margin-top: 0;
     }
-    .player {
-      margin-bottom: 10px;
+    .order.buy {
+      background: #003300;
+      padding: 3px;
+      margin: 2px 0;
+    }
+    .order.sell {
+      background: #330000;
+      padding: 3px;
+      margin: 2px 0;
+    }
+    .order.executing {
+      background: #665500;
+      color: #fff;
+    }
+    .portfolio, .controls {
+      background: #222;
+      padding: 10px;
+      border-radius: 10px;
+    }
+    .portfolio h2, .controls h2 {
+      text-align: center;
+    }
+    label, input, select {
+      display: block;
+      width: 100%;
+      margin-bottom: 5px;
+    }
+    button {
+      width: 100%;
+      margin-top: 10px;
+      padding: 5px;
+      background: #444;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #666;
     }
   </style>
 </head>
 <body>
-  <h1>Simulador de Book de Ofertas - PETR4</h1>
   <div class="container">
     <div class="book" id="buyBook">
       <h2>Book de Compra</h2>
     </div>
+    <div>
+      <div class="portfolio" id="portfolio">
+        <h2>Portfólio</h2>
+        <p>Caixa: R$ <span id="cash">700000000</span></p>
+        <p>Ações: <span id="shares">0</span></p>
+        <p>Preço Médio: R$ <span id="avgPrice">0,00</span></p>
+        <p>Valor Atual: R$ <span id="totalValue">0,00</span></p>
+      </div>
+      <div class="controls">
+        <h2>Ordem Manual</h2>
+        <select id="orderType">
+          <option value="buy">Comprar</option>
+          <option value="sell">Vender</option>
+        </select>
+        <input type="number" id="price" placeholder="Preço">
+        <input type="number" id="quantity" placeholder="Quantidade">
+        <button onclick="addManualOrder()">Inserir Ordem</button>
+        <h3>Robô</h3>
+        <select id="robotMode">
+          <option value="market">A Mercado</option>
+          <option value="below">Abaixo do preço</option>
+        </select>
+        <input type="number" id="robotOffset" placeholder="Distância em centavos">
+        <input type="number" id="robotQty" placeholder="Qtd por ordem">
+        <button onclick="toggleRobot()" id="robotBtn">Ativar Robô</button>
+        <h3>Simulação</h3>
+        <button onclick="toggleSim()" id="simBtn">Pausar</button>
+        <button onclick="saveStatus()">Salvar Estado</button>
+        <button onclick="loadStatus()">Carregar Estado</button>
+      </div>
+    </div>
     <div class="book" id="sellBook">
       <h2>Book de Venda</h2>
     </div>
-  </div>
-  <div class="portfolio" id="portfolio">
-    <h3>Portfólios</h3>
-  </div>
-  <script>
-    const formatNumber = n => n.toLocaleString('pt-BR');const buyBook = document.getElementById('buyBook');
-const sellBook = document.getElementById('sellBook');
-const portfolio = document.getElementById('portfolio');
+  </div>  <script>
+    let buyOrders = [], sellOrders = [];
+    let executingOrders = new Set();
+    let cash = 700000000, shares = 0, avgPrice = 0;
+    let simRunning = true, robotOn = false;
 
-function renderBook(bookElement, orders, type) {
-  const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
-  bookElement.innerHTML = `<h2>Book de ${type === 'buy' ? 'Compra' : 'Venda'}</h2>`;
-  sorted.slice(0, 20).forEach((order, i) => {
-    const div = document.createElement('div');
-    div.className = `order ${type} ${i === 0 ? 'highlight' : ''}`;
-    if (order.executing) div.classList.add('executing');
-    div.textContent = `${formatNumber(order.qty)} @ R$ ${formatNumber(order.price.toFixed(2))}`;
-    bookElement.appendChild(div);
-  });
-}
+    function updatePortfolio() {
+      document.getElementById('cash').innerText = cash.toFixed(2);
+      document.getElementById('shares').innerText = shares;
+      document.getElementById('avgPrice').innerText = avgPrice.toFixed(2);
+      let currentPrice = sellOrders.length > 0 ? sellOrders[0].price : avgPrice;
+      document.getElementById('totalValue').innerText = (currentPrice * shares).toFixed(2);
+    }
 
-function renderPortfolios(players) {
-  portfolio.innerHTML = '<h3>Portfólios</h3>';
-  players.forEach(p => {
-    const div = document.createElement('div');
-    div.className = 'player';
-    div.innerHTML = `<strong>${p.name}</strong><br>
-      Caixa: R$ ${formatNumber(p.cash.toFixed(2))} | Ações: ${formatNumber(p.qty)} | PM: R$ ${formatNumber(p.avg.toFixed(2))} | Valor Total: R$ ${formatNumber((p.qty * p.price).toFixed(2))}`;
-    portfolio.appendChild(div);
-  });
-}
+    function renderBooks() {
+      const buyBook = document.getElementById("buyBook");
+      const sellBook = document.getElementById("sellBook");
 
-// Exemplo de dados para simulação
-const buyOrders = [
-  { qty: 1000, price: 32.45 },
-  { qty: 2000, price: 32.40 },
-  { qty: 500, price: 32.30, executing: true }
-];
+      buyBook.innerHTML = "<h2>Book de Compra</h2>";
+      sellBook.innerHTML = "<h2>Book de Venda</h2>";
 
-const sellOrders = [
-  { qty: 1000, price: 32.50 },
-  { qty: 1500, price: 32.55 },
-  { qty: 2000, price: 32.60, executing: true }
-];
-
-const players = [
-  { name: 'UBS Pactual', cash: 700000000, qty: 100000, avg: 31.75, price: 32.50 },
-  { name: 'Credit Suisse', cash: 700000000, qty: 50000, avg: 30.10, price: 32.50 },
-  { name: 'Morgan Stanley', cash: 700000000, qty: 80000, avg: 31.00, price: 32.50 },
-  { name: 'Merrill Lynch', cash: 700000000, qty: 60000, avg: 29.50, price: 32.50 },
-  { name: 'XP Investimentos', cash: 700000000, qty: 75000, avg: 31.90, price: 32.50 },
-];
-
-renderBook(buyBook, buyOrders, 'buy');
-renderBook(sellBook, sellOrders, 'sell');
-renderPortfolios(players);
-
-  </script>
-</body>
-</html>
+      buyOrders.slice(0,20).forEach(o => {
+        const div = document.createElement("div");
+        div.className = "order buy" + (executingOrders.has(o.id) ? " executing" : "");
+        div.textContent = `${o.qty.toLocaleString()} @ R$ ${o.price.toFixed(2)}`;
+        buyBook.appendChild(div);
+      });
+      sellOrders.slice(0,20).forEach(o => {
+        const div = document.createElement("div");
+        div.className = "order sell" + (executingOrders.has(o.id) ? " executing
