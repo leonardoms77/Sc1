@@ -37,6 +37,22 @@
       text-align: center;
       padding: 2px;
     }
+    <div id="trade-history" style="margin-top: 20px;">
+  <h2>Histórico de Negociações</h2>
+  <table id="history-table" style="width: 100%; border-collapse: collapse;">
+    <thead>
+      <tr>
+        <th>Hora</th>
+        <th>Comprador</th>
+        <th>Vendedor</th>
+        <th>Quantidade</th>
+        <th>Preço</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+</div>
     .portfolio, .history { flex: 1 1 100%; font-size: 14px; }
     .chart { flex: 1 1 100%; height: 300px; }
     #rotateBtn {
@@ -84,6 +100,68 @@
         screen.orientation.lock("landscape").catch(() => alert("Não foi possível girar a tela."));
       }
     });
+  </script>
+  <script>
+function executarOrdens() {
+  // Ordenar por prioridade de preço e tempo
+  buyOrders.sort((a, b) => b.price - a.price || a.time - b.time);
+  sellOrders.sort((a, b) => a.price - b.price || a.time - b.time);
+
+  let execucoes = [];
+
+  while (buyOrders.length > 0 && sellOrders.length > 0) {
+    const buy = buyOrders[0];
+    const sell = sellOrders[0];
+
+    if (buy.price >= sell.price) {
+      // Quantidade executada
+      const quantidade = Math.min(buy.quantity, sell.quantity);
+      const precoExecucao = sell.time <= buy.time ? sell.price : buy.price;
+
+      execucoes.push({
+        comprador: buy.bank,
+        vendedor: sell.bank,
+        quantidade,
+        preco: precoExecucao,
+        hora: new Date().toLocaleTimeString()
+      });
+
+      // Atualizar quantidades
+      buy.quantity -= quantidade;
+      sell.quantity -= quantidade;
+
+      if (buy.quantity <= 0) buyOrders.shift();
+      if (sell.quantity <= 0) sellOrders.shift();
+    } else {
+      break;
+    }
+  }
+
+  atualizarBook();
+  atualizarHistorico(execucoes);
+}
+
+function atualizarHistorico(execucoes) {
+  const tbody = document.querySelector('#history-table tbody');
+
+  execucoes.forEach(exec => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${exec.hora}</td>
+      <td>${exec.comprador}</td>
+      <td>${exec.vendedor}</td>
+      <td>${exec.quantidade.toLocaleString()}</td>
+      <td style="color: #009900;">R$ ${exec.preco.toFixed(2)}</td>
+    `;
+    tbody.prepend(row);
+    if (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+  });
+}
+
+// Rodar a cada 1 segundo
+setInterval(() => {
+  executarOrdens();
+}, 1000);
   </script>
 </body>
 </html>
