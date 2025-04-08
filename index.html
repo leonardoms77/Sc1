@@ -1,27 +1,26 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Simulador de Book de PETR4</title>
+  <title>Simulador de Book PETR4</title>
   <style>
     body {
-      font-family: monospace;
+      font-family: Arial, sans-serif;
       background-color: #111;
       color: #eee;
       margin: 0;
       padding: 0;
     }
-    h2, h3 {
-      text-align: center;
-      margin: 10px 0;
-    }
-    .book-container {
+
+    .container {
       display: flex;
-      justify-content: space-around;
+      justify-content: space-between;
       padding: 10px;
     }
+
     .book {
+      font-size: 13px;
       width: 45%;
       background-color: #222;
       border: 1px solid #444;
@@ -29,203 +28,109 @@
       overflow-y: auto;
       max-height: 300px;
     }
-    .book h3 {
-      text-align: center;
-      margin-bottom: 5px;
-    }
-    .row {
+
+    .header, .row {
       display: flex;
-      justify-content: space-between;
       padding: 2px 5px;
-      border-bottom: 1px solid #333;
     }
-    .row.executed {
-      background-color: #665500;
-    }
-    .buy {
-      color: #4cff4c;
-    }
-    .sell {
-      color: #ff4c4c;
-    }
+
     .header {
-      display: flex;
-      justify-content: space-between;
       font-weight: bold;
       border-bottom: 2px solid #666;
       margin-bottom: 4px;
     }
-    .portfolio {
-      background-color: #222;
-      margin: 10px;
+
+    .row span, .header span {
+      flex-basis: 33.33%;
+      text-align: center;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+
+    .buy {
+      background-color: #003300;
+    }
+
+    .sell {
+      background-color: #330000;
+    }
+
+    .executing {
+      background-color: #666600;
+      color: #fff;
+    }
+
+    .painel {
       padding: 10px;
+      margin: 10px;
+      background-color: #222;
       border: 1px solid #444;
     }
-    .ipo-panel {
-      text-align: center;
-      padding: 10px;
-      background-color: #222;
-      border-bottom: 1px solid #444;
+
+    h2 {
+      color: #fff;
     }
   </style>
 </head>
 <body>
 
-  <div class="ipo-panel" id="ipoPanel">
-    <h2>IPO de PETR4</h2>
-    <div>Ações restantes: <span id="acoesRestantes">8.000.000.000</span></div>
-    <div>Ações vendidas hoje: <span id="acoesVendidasHoje">0</span></div>
-    <div>Capital arrecadado: R$ <span id="capitalArrecadado">0,00</span></div>
-  </div>
-
-  <div class="book-container">
+  <div class="container">
     <div class="book" id="buyBook">
-      <h3>Book de Compra</h3>
       <div class="header">
-        <span>Banco</span><span>Qtd</span><span>Preço</span>
+        <span>Banco</span><span>Qtde</span><span>Preço</span>
       </div>
     </div>
+
     <div class="book" id="sellBook">
-      <h3>Book de Venda</h3>
       <div class="header">
-        <span>Banco</span><span>Qtd</span><span>Preço</span>
+        <span>Banco</span><span>Qtde</span><span>Preço</span>
       </div>
     </div>
   </div>
 
-  <div class="portfolio">
-    <h3>Portfólios</h3>
-    <div id="portfolioList"></div>
+  <div class="painel" id="ipoPanel">
+    <h2>Capitalização PETR4</h2>
+    <p>Ações restantes: <span id="acoesRestantes">8000000000</span></p>
+    <p>Capital já captado: R$ <span id="capitalCaptado">0</span></p>
   </div>
 
   <script>
-    const buyBook = [];
-    const sellBook = [];
-    const portfolios = {
-      'UBS Pactual': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
-      'Credit Suisse': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
-      'Morgan Stanley': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
-      'Merrill Lynch': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
-      'XP': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
-      'Bradesco': { caixa: 0, acoes: 8_000_000_000, arrecadado: 0 }
-    };
+    const buyBook = document.getElementById("buyBook");
+    const sellBook = document.getElementById("sellBook");
+    const acoesRestantes = document.getElementById("acoesRestantes");
+    const capitalCaptado = document.getElementById("capitalCaptado");
 
-    let acoesVendidasHoje = 0;
+    let totalAcoes = 8000000000;
+    let captado = 0;
 
-    function atualizarBook() {
-      const buyDiv = document.getElementById("buyBook");
-      const sellDiv = document.getElementById("sellBook");
-      buyDiv.innerHTML = '<h3>Book de Compra</h3><div class="header"><span>Banco</span><span>Qtd</span><span>Preço</span></div>';
-      sellDiv.innerHTML = '<h3>Book de Venda</h3><div class="header"><span>Banco</span><span>Qtd</span><span>Preço</span></div>';
-
-      buyBook.slice(0, 20).forEach(ordem => {
-        const row = document.createElement("div");
-        row.className = "row buy";
-        if (ordem.executado) row.classList.add("executed");
-        row.innerHTML = `<span>${ordem.banco}</span><span>${ordem.quantidade}</span><span>R$ ${ordem.preco.toFixed(2)}</span>`;
-        buyDiv.appendChild(row);
-      });
-
-      sellBook.slice(0, 20).forEach(ordem => {
-        const row = document.createElement("div");
-        row.className = "row sell";
-        if (ordem.executado) row.classList.add("executed");
-        row.innerHTML = `<span>${ordem.banco}</span><span>${ordem.quantidade}</span><span>R$ ${ordem.preco.toFixed(2)}</span>`;
-        sellDiv.appendChild(row);
-      });
-    }
-
-    function atualizarPortfolio() {
-      const portDiv = document.getElementById("portfolioList");
-      portDiv.innerHTML = "";
-      for (let banco in portfolios) {
-        const p = portfolios[banco];
-        const valorAtual = p.acoes * getPrecoAtual();
-        const linha = document.createElement("div");
-        linha.innerHTML = `<strong>${banco}:</strong> Caixa: R$ ${p.caixa.toLocaleString()} | Ações: ${p.acoes} | Médio: R$ ${p.precoMedio.toFixed(2)} | Valor atual: R$ ${valorAtual.toLocaleString()}`;
-        portDiv.appendChild(linha);
-      }
-    }
-
-    function getPrecoAtual() {
-      const melhoresVendas = sellBook.slice().sort((a,b) => a.preco - b.preco);
-      return melhoresVendas.length ? melhoresVendas[0].preco : 28.00;
-    }
-
-    function executarOrdens() {
-      buyBook.sort((a,b) => b.preco - a.preco);
-      sellBook.sort((a,b) => a.preco - b.preco);
-
-      for (let i = 0; i < buyBook.length; i++) {
-        for (let j = 0; j < sellBook.length; j++) {
-          const compra = buyBook[i];
-          const venda = sellBook[j];
-          if (compra.preco >= venda.preco && compra.quantidade > 0 && venda.quantidade > 0) {
-            const qtd = Math.min(compra.quantidade, venda.quantidade);
-            const valor = qtd * venda.preco;
-
-            if (portfolios[compra.banco].caixa >= valor) {
-              compra.quantidade -= qtd;
-              venda.quantidade -= qtd;
-              portfolios[compra.banco].caixa -= valor;
-              portfolios[compra.banco].acoes += qtd;
-              const totalGasto = portfolios[compra.banco].precoMedio * (portfolios[compra.banco].acoes - qtd) + valor;
-              portfolios[compra.banco].precoMedio = totalGasto / portfolios[compra.banco].acoes;
-
-              portfolios[venda.banco].caixa += valor;
-              portfolios[venda.banco].acoes -= qtd;
-
-              compra.executado = true;
-              venda.executado = true;
-
-              // Atualizar IPO se foi o Bradesco
-              if (venda.banco === "Bradesco") {
-                portfolios["Bradesco"].acoes -= qtd;
-                portfolios["Bradesco"].arrecadado += valor;
-                acoesVendidasHoje += qtd;
-                atualizarPainelIPO();
-              }
-
-              break;
-            }
-          }
-        }
-      }
-
-      atualizarBook();
-      atualizarPortfolio();
-    }
-
-    function atualizarPainelIPO() {
-      document.getElementById("acoesRestantes").innerText = portfolios["Bradesco"].acoes.toLocaleString();
-      document.getElementById("acoesVendidasHoje").innerText = acoesVendidasHoje.toLocaleString();
-      document.getElementById("capitalArrecadado").innerText = portfolios["Bradesco"].arrecadado.toLocaleString("pt-BR", {minimumFractionDigits: 2});
-    }
-
-    function colocarOrdem(banco, quantidade, preco, tipo) {
-      const ordem = { banco, quantidade, preco };
-      if (tipo === "compra") {
-        buyBook.push(ordem);
+    function adicionarOrdem(tipo, banco, qtde, preco, executando = false) {
+      const row = document.createElement("div");
+      row.className = `row ${tipo} ${executando ? 'executing' : ''}`;
+      row.innerHTML = `<span>${banco}</span><span>${qtde.toLocaleString()}</span><span>R$ ${preco.toFixed(2)}</span>`;
+      if (tipo === "buy") {
+        buyBook.appendChild(row);
       } else {
-        sellBook.push(ordem);
+        sellBook.appendChild(row);
       }
     }
 
-    // Bradesco vende automaticamente
-    setInterval(() => {
-      const preco = getPrecoAtual() + (Math.random() * 0.2);
-      const qtd = [100,200,300,500,1000,2000,3000][Math.floor(Math.random() * 7)];
-      if (portfolios["Bradesco"].acoes > 0) {
-        colocarOrdem("Bradesco", qtd, preco, "venda");
-      }
-    }, 1000);
+    function venderBradesco() {
+      const preco = 29 + Math.random() * 2;
+      const qtde = Math.floor(Math.random() * 300 + 100) * 100;
+      const captacao = preco * qtde;
 
-    // Execução a cada 1 segundo
-    setInterval(executarOrdens, 1000);
+      if (totalAcoes <= 0) return;
 
-    atualizarBook();
-    atualizarPortfolio();
-    atualizarPainelIPO();
+      totalAcoes -= qtde;
+      captado += captacao;
+
+      acoesRestantes.textContent = totalAcoes.toLocaleString();
+      capitalCaptado.textContent = captado.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
+      adicionarOrdem("sell", "Bradesco", qtde, preco);
+    }
+
+    setInterval(venderBradesco, 1000);
   </script>
 </body>
 </html>
