@@ -1,140 +1,136 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html><html lang="pt-br">
 <head>
   <meta charset="UTF-8">
   <title>Simulador de Book de Ofertas - PEtR4</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f4f4f4;
+      background-color: #f2f2f2;
       margin: 0;
       padding: 20px;
+    }
+    h1 {
+      text-align: center;
     }
     .container {
       display: flex;
       justify-content: space-between;
+      gap: 20px;
     }
-    .book, .portfolio {
-      background: #fff;
-      padding: 10px;
-      border-radius: 10px;
-      width: 48%;
-      height: 500px;
-      overflow-y: scroll;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .book {
+      width: 45%;
+      max-height: 400px;
+      overflow-y: auto;
+      border: 1px solid #ccc;
+      background: white;
     }
-    .book h2, .portfolio h2 {
+    .book h2 {
       text-align: center;
+      margin: 0;
+      padding: 10px;
+      background-color: #ddd;
     }
-    .buy { color: green; }
-    .sell { color: red; }
     .order {
       display: flex;
       justify-content: space-between;
-      border-bottom: 1px solid #ddd;
-      padding: 5px;
+      padding: 5px 10px;
+      border-bottom: 1px solid #eee;
     }
-    .controls {
+    .buy {
+      background-color: #d1f7d1;
+      color: #222;
+    }
+    .sell {
+      background-color: #f7d1d1;
+      color: #222;
+    }
+    .executing {
+      background-color: #e6c200 !important;
+    }
+    .highlight {
+      box-shadow: inset 0 0 5px #00000044;
+      font-weight: bold;
+    }
+    .portfolio {
       margin-top: 20px;
+      background: white;
+      padding: 10px;
+      border: 1px solid #ccc;
     }
-    .controls input {
-      margin: 5px;
+    .portfolio h3 {
+      margin-top: 0;
+    }
+    .player {
+      margin-bottom: 10px;
     }
   </style>
 </head>
 <body>
-  <h1>Simulador de Book de Ofertas - PETR4</h1>  <div class="container">
-    <div class="book">
-      <h2>Compras</h2>
-      <div id="buyBook"></div>
-    </div><div class="book">
-  <h2>Vendas</h2>
-  <div id="sellBook"></div>
-</div>
+  <h1>Simulador de Book de Ofertas - PETR4</h1>
+  <div class="container">
+    <div class="book" id="buyBook">
+      <h2>Book de Compra</h2>
+    </div>
+    <div class="book" id="sellBook">
+      <h2>Book de Venda</h2>
+    </div>
+  </div>
+  <div class="portfolio" id="portfolio">
+    <h3>Portfólios</h3>
+  </div>
+  <script>
+    const formatNumber = n => n.toLocaleString('pt-BR');const buyBook = document.getElementById('buyBook');
+const sellBook = document.getElementById('sellBook');
+const portfolio = document.getElementById('portfolio');
 
-  </div>  <div class="portfolio">
-    <h2>Meu Portfólio</h2>
-    <p>Caixa: R$ <span id="cash">700000000</span></p>
-    <p>Ações: <span id="shares">0</span></p>
-    <p>Preço Médio: R$ <span id="avgPrice">0</span></p>
-    <p>Valor Total das Ações: R$ <span id="totalValue">0</span></p>
-  </div>  <div class="controls">
-    <h2>Inserir Ordem Manual</h2>
-    <label>Tipo:
-      <select id="orderType">
-        <option value="buy">Compra</option>
-        <option value="sell">Venda</option>
-      </select>
-    </label>
-    <label>Preço: <input type="number" id="price" /></label>
-    <label>Quantidade: <input type="number" id="quantity" /></label>
-    <button onclick="submitOrder()">Enviar Ordem</button>
-  </div>  <script>
-    let buyOrders = [];
-    let sellOrders = [];
-    let cash = 700000000;
-    let shares = 0;
-    let totalSpent = 0;
+function renderBook(bookElement, orders, type) {
+  const sorted = [...orders].sort((a, b) => type === 'buy' ? b.price - a.price : a.price - b.price);
+  bookElement.innerHTML = `<h2>Book de ${type === 'buy' ? 'Compra' : 'Venda'}</h2>`;
+  sorted.slice(0, 20).forEach((order, i) => {
+    const div = document.createElement('div');
+    div.className = `order ${type} ${i === 0 ? 'highlight' : ''}`;
+    if (order.executing) div.classList.add('executing');
+    div.textContent = `${formatNumber(order.qty)} @ R$ ${formatNumber(order.price.toFixed(2))}`;
+    bookElement.appendChild(div);
+  });
+}
 
-    function updateBooks() {
-      const buyDiv = document.getElementById('buyBook');
-      const sellDiv = document.getElementById('sellBook');
-      buyDiv.innerHTML = '';
-      sellDiv.innerHTML = '';
-      buyOrders.slice(0, 20).forEach(order => {
-        buyDiv.innerHTML += `<div class="order buy">${order.quantity} @ R$${order.price}</div>`;
-      });
-      sellOrders.slice(0, 20).forEach(order => {
-        sellDiv.innerHTML += `<div class="order sell">${order.quantity} @ R$${order.price}</div>`;
-      });
-    }
+function renderPortfolios(players) {
+  portfolio.innerHTML = '<h3>Portfólios</h3>';
+  players.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'player';
+    div.innerHTML = `<strong>${p.name}</strong><br>
+      Caixa: R$ ${formatNumber(p.cash.toFixed(2))} | Ações: ${formatNumber(p.qty)} | PM: R$ ${formatNumber(p.avg.toFixed(2))} | Valor Total: R$ ${formatNumber((p.qty * p.price).toFixed(2))}`;
+    portfolio.appendChild(div);
+  });
+}
 
-    function updatePortfolio() {
-      document.getElementById('cash').textContent = cash.toFixed(2);
-      document.getElementById('shares').textContent = shares;
-      let avg = shares ? (totalSpent / shares) : 0;
-      document.getElementById('avgPrice').textContent = avg.toFixed(2);
-      document.getElementById('totalValue').textContent = (shares * getMarketPrice()).toFixed(2);
-    }
+// Exemplo de dados para simulação
+const buyOrders = [
+  { qty: 1000, price: 32.45 },
+  { qty: 2000, price: 32.40 },
+  { qty: 500, price: 32.30, executing: true }
+];
 
-    function getMarketPrice() {
-      if (sellOrders.length > 0) return sellOrders[0].price;
-      if (buyOrders.length > 0) return buyOrders[0].price;
-      return 30.00;
-    }
+const sellOrders = [
+  { qty: 1000, price: 32.50 },
+  { qty: 1500, price: 32.55 },
+  { qty: 2000, price: 32.60, executing: true }
+];
 
-    function matchOrders() {
-      while (buyOrders.length > 0 && sellOrders.length > 0 && buyOrders[0].price >= sellOrders[0].price) {
-        const quantity = Math.min(buyOrders[0].quantity, sellOrders[0].quantity);
-        const price = sellOrders[0].price;
+const players = [
+  { name: 'UBS Pactual', cash: 700000000, qty: 100000, avg: 31.75, price: 32.50 },
+  { name: 'Credit Suisse', cash: 700000000, qty: 50000, avg: 30.10, price: 32.50 },
+  { name: 'Morgan Stanley', cash: 700000000, qty: 80000, avg: 31.00, price: 32.50 },
+  { name: 'Merrill Lynch', cash: 700000000, qty: 60000, avg: 29.50, price: 32.50 },
+  { name: 'XP Investimentos', cash: 700000000, qty: 75000, avg: 31.90, price: 32.50 },
+];
 
-        if (cash < quantity * price) break;
+renderBook(buyBook, buyOrders, 'buy');
+renderBook(sellBook, sellOrders, 'sell');
+renderPortfolios(players);
 
-        buyOrders[0].quantity -= quantity;
-        sellOrders[0].quantity -= quantity;
-
-        if (buyOrders[0].quantity <= 0) buyOrders.shift();
-        if (sellOrders[0].quantity <= 0) sellOrders.shift();
-
-        cash -= quantity * price;
-        shares += quantity;
-        totalSpent += quantity * price;
-      }
-    }
-
-    function submitOrder() {
-      const type = document.getElementById('orderType').value;
-      const price = parseFloat(document.getElementById('price').value);
-      const quantity = parseInt(document.getElementById('quantity').value);
-      if (type === 'buy') {
-        buyOrders.push({ price, quantity });
-        buyOrders.sort((a, b) => b.price - a.price);
-      } else {
-        sellOrders.push({ price, quantity });
-        sellOrders.sort((a, b) => a.price - b.price);
-      }
-      updateBooks();
-    }
-
-    setInterval(() => {
-      matchOrders();
-      updateBooks
+  </script>
+</body>
+</html>
