@@ -93,6 +93,61 @@
   </div>
 
   <!-- Scripts aqui depois -->
+<script>
+  let ciclo = 0;
+  const ciclosTotais = 420;
+  let intervalo = null;
 
+  function iniciarSimulacao() {
+    if (intervalo) return;
+
+    intervalo = setInterval(() => {
+      ciclo++;
+
+      document.title = `Ciclo ${ciclo} / ${ciclosTotais}`;
+
+      // Aqui você pode chamar os scripts dos players e do Bradesco
+      executarCiclo();
+
+      if (ciclo >= ciclosTotais) {
+        clearInterval(intervalo);
+        intervalo = null;
+        console.log("Fim do pregão!");
+      }
+    }, 1000); // 1 segundo por ciclo
+  }
+
+  function pausarSimulacao() {
+    clearInterval(intervalo);
+    intervalo = null;
+  }
+
+  function executarCiclo() {
+    // Aqui será onde os bots colocam ordens
+    if (typeof cicloExecutado === "function") {
+      cicloExecutado(ciclo); // função que você define fora, onde quiser
+    }
+  }
+
+  // Botões de controle
+  const btns = document.createElement('div');
+  btns.style.textAlign = "center";
+  btns.style.marginTop = "10px";
+  btns.innerHTML = `
+    <button onclick="iniciarSimulacao()">Iniciar</button>
+    <button onclick="pausarSimulacao()">Pausar</button>
+  `;
+  document.body.appendChild(btns);
+</script>
+
+<script>
+  function cicloExecutado(ciclo) {
+    // Exemplo: Bradesco lança ordens de venda
+    bradescoVende();
+    botsColocamOrdens();
+    executarBook();
+  }
+</script>
+  
 </body>
 </html>
