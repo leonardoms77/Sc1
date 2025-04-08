@@ -1,94 +1,114 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador PETR4</title>
+  <meta charset="UTF-8" />
+  <title>Simulador de Book de Ofertas - PETR4</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     h1 {
-      text-align: center;
-      background: #222;
-      color: white;
-      margin: 0;
-      padding: 10px;
+      margin: 10px 0;
     }
-    .book-container {
+    #container {
       display: flex;
       justify-content: center;
-      gap: 20px;
-      padding: 20px;
+      gap: 40px;
+      margin-top: 20px;
     }
     .book {
-      background: white;
+      width: 300px;
+      height: 400px;
+      background: #fff;
       border: 1px solid #ccc;
-      border-radius: 10px;
-      overflow-y: auto;
-      max-height: 400px;
-      width: 45%;
+      overflow-y: scroll;
       padding: 10px;
     }
     .book h2 {
-      text-align: center;
+      margin: 0 0 10px;
     }
-    .order {
+    .header {
       display: flex;
       justify-content: space-between;
-      padding: 2px 5px;
+      font-weight: bold;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 5px;
     }
-    .buy {
-      background-color: #d0f0d0;
+    .order-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      padding: 2px;
     }
-    .sell {
-      background-color: #f0d0d0;
+    .order-row.executing {
+      background: #f0d000;
     }
-    .executing {
-      background-color: #d4b106 !important;
+    .compra {
+      background: #d4f9d4;
+    }
+    .venda {
+      background: #ffd4d4;
     }
   </style>
 </head>
 <body>
-  <h1>Simulador PETR4</h1>
-  <div class="book-container">
-    <div class="book" id="bookCompra">
-      <h2>Book de Compra</h2>
+  <h1>Simulador de Book de Ofertas - PETR4</h1>
+  <div id="container">
+    <div class="book" id="book-compra">
+      <h2>Compras</h2>
+      <div class="header">
+        <span>Banco</span>
+        <span>Qtd</span>
+        <span>Preço</span>
+      </div>
+      <div id="compras"></div>
     </div>
-    <div class="book" id="bookVenda">
-      <h2>Book de Venda</h2>
+    <div class="book" id="book-venda">
+      <h2>Vendas</h2>
+      <div class="header">
+        <span>Banco</span>
+        <span>Qtd</span>
+        <span>Preço</span>
+      </div>
+      <div id="vendas"></div>
     </div>
   </div>  <script>
-    let acoesRestantesHoje = 400000;
+    const vendas = document.getElementById("vendas");
 
-    function adicionarOrdemVenda(nome, quantidade, preco) {
-      const div = document.createElement('div');
-      div.className = 'order sell';
-      div.textContent = `${nome} - ${quantidade} @ R$ ${preco.toFixed(2)}`;
-      document.getElementById("bookVenda").appendChild(div);
-    }
+    function adicionarOrdemVenda(banco, quantidade, preco) {
+      const linha = document.createElement("div");
+      linha.className = "order-row venda";
+      linha.innerHTML = `
+        <span>${banco}</span>
+        <span>${quantidade.toLocaleString()}</span>
+        <span>R$ ${preco.toFixed(2)}</span>
+      `;
+      vendas.appendChild(linha);
 
-    function bradescoVende() {
-      if (acoesRestantesHoje <= 0) return;
-
-      let lote = Math.floor(Math.random() * 91 + 10) * 100;
-      if (lote > acoesRestantesHoje) {
-        lote = acoesRestantesHoje;
+      // Limita a 20 linhas
+      if (vendas.children.length > 20) {
+        vendas.removeChild(vendas.firstChild);
       }
-
-      const preco = (Math.floor(Math.random() * 401) + 3800) / 100;
-      adicionarOrdemVenda("Bradesco", lote, preco);
-      acoesRestantesHoje -= lote;
     }
 
-    function cicloExecutado() {
-      bradescoVende();
-      // outros bots aqui futuramente
+    // Simula IPO Bradesco
+    let acoesRestantes = 8000000;
+    let acoesHoje = 0;
+    function cicloBradesco() {
+      if (acoesRestantes > 0 && acoesHoje < 400000) {
+        const lote = Math.floor(Math.random() * 5 + 1) * 100;
+        const preco = 27 + Math.random();
+        adicionarOrdemVenda("Bradesco", lote, preco);
+        acoesRestantes -= lote;
+        acoesHoje += lote;
+      }
     }
 
-    // Timer global - 1 segundo = 1 ciclo
-    setInterval(cicloExecutado, 1000);
+    setInterval(() => {
+      cicloBradesco();
+    }, 1000);
   </script></body>
 </html>
