@@ -1,196 +1,185 @@
-lios();
-  </script></body>
-</html>
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html><html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
-  <title>Simulador de Book PETR4</title>
+  <meta charset="UTF-8" />
+  <title>Simulador PETR4</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      padding: 20px;
-      background-color: #f4f4f4;
-    }
-    .book-container {
-      height: 300px;
-      overflow-y: auto;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-    }
-    .buy {
-      background-color: #e0ffe0;
-      color: green;
-    }
-    .sell {
-      background-color: #ffe0e0;
-      color: red;
-    }
-    .controls, .robot-settings, .ipo-panel {
-      grid-column: span 2;
-      background: #fff;
-      border: 1px solid #ccc;
-      padding: 10px;
-      margin-top: 10px;
-    }
-    input {
-      margin: 5px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 4px;
-      border: 1px solid #ccc;
-      text-align: right;
-    }
+    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; }
+    .book-container { display: flex; justify-content: space-around; width: 100%; max-width: 1200px; margin-top: 20px; }
+    .book { width: 45%; max-height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
+    .buy { background-color: #e0ffe0; }
+    .sell { background-color: #ffe0e0; }
+    .order-form, .control-panel, .portfolio { margin-top: 20px; width: 100%; max-width: 1200px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
+    .highlight { font-weight: bold; }
   </style>
 </head>
-<body><div class="book-container" id="buyBook"></div>
-<div class="book-container" id="sellBook"></div><div class="controls">
-  <h3>Ordem Manual</h3>
-  <select id="ordemTipo">
-    <option value="buy">Compra</option>
-    <option value="sell">Venda</option>
-  </select>
-  Quantidade: <input type="number" id="ordemQtd" value="100">
-  Preço: <input type="number" id="ordemPreco" step="0.01" value="30">
-  <button onclick="adicionarOrdemManual()">Inserir</button>
-</div><div class="robot-settings">
-  <h3>Configurar Robô UBS Pactual</h3>
-  <select id="modoRobo">
-    <option value="mercado">A Mercado</option>
-    <option value="abaixo">Compra abaixo do preço</option>
-  </select>
-  Diferença (ex: 0.2): <input type="number" id="ajustePreco" step="0.01" value="0.2">
-</div><div class="ipo-panel">
-  <h3>IPO Petrobras</h3>
-  <p>Total de ações: <span id="totalAcoes">8000000000</span></p>
-  <p>Restantes: <span id="acoesRestantes">8000000000</span></p>
-  <p>Capital captado: R$ <span id="capitalCaptado">0.00</span></p>
-</div><div class="controls">
-  <button onclick="toggleSimulacao()">Pausar/Continuar</button>
-  <button onclick="salvarEstado()">Salvar</button>
-  <button onclick="carregarEstado()">Carregar</button>
-</div><script>
-let buyBook = [], sellBook = [];
-let saldo = {
-  'UBS': 700000000,
-  'Credit Suisse': 700000000,
-  'Morgan Stanley': 700000000,
-  'Merrill Lynch': 700000000,
-  'XP': 700000000,
-  'Bradesco': 700000000
-};
-let acoesBradesco = 8000000000;
-let capitalCaptado = 0;
-let ciclo = 0;
-let rodando = true;
+<body>
+  <h1>Simulador de Book PETR4</h1>  <div class="portfolio">
+    <h2>Portfólios</h2>
+    <table>
+      <thead>
+        <tr><th>Player</th><th>Caixa</th><th>Ações</th><th>Preço Médio</th><th>Valor Atual</th></tr>
+      </thead>
+      <tbody id="portfolios">
+      </tbody>
+    </table>
+  </div>  <div class="book-container">
+    <div class="book buy">
+      <h2>Book de Compras</h2>
+      <table><thead><tr><th>Qtd</th><th>Preço</th></tr></thead>
+      <tbody id="buyBook"></tbody></table>
+    </div>
+    <div class="book sell">
+      <h2>Book de Vendas</h2>
+      <table><thead><tr><th>Preço</th><th>Qtd</th></tr></thead>
+      <tbody id="sellBook"></tbody></table>
+    </div>
+  </div>  <div class="order-form">
+    <h2>Ordem Manual - UBS</h2>
+    <label>Tipo:
+      <select id="manualType">
+        <option value="buy">Compra</option>
+        <option value="sell">Venda</option>
+      </select>
+    </label>
+    <label>Quantidade:
+      <input type="number" id="manualQty" min="100" step="100" />
+    </label>
+    <label>Preço:
+      <input type="number" id="manualPrice" step="0.01" />
+    </label>
+    <button onclick="placeManualOrder()">Enviar Ordem</button>
+  </div>  <div class="control-panel">
+    <h2>Controle</h2>
+    <label>Robô UBS:
+      <select id="botMode">
+        <option value="none">Desligado</option>
+        <option value="marketBuy">Comprar a mercado</option>
+        <option value="priceBelow">Comprar abaixo</option>
+      </select>
+    </label>
+    <label>Valor abaixo (se aplicável):
+      <input type="number" id="priceDelta" step="0.01" value="0.2" />
+    </label>
+    <button onclick="toggleSim()">Pausar/Continuar</button>
+    <button onclick="saveState()">Salvar Estado</button>
+    <button onclick="loadState()">Carregar Estado</button>
+  </div>  <div class="control-panel">
+    <h2>IPO Petrobras (Bradesco)</h2>
+    <p>Total: <span id="ipoTotal">8.000.000.000</span> | Restantes: <span id="ipoRemaining">8.000.000.000</span> | Captado: R$ <span id="ipoValue">0</span></p>
+  </div>  <script>
+    let buyBook = [], sellBook = [], running = true, cycle = 0;
+    let players = {
+      'UBS': { cash: 700000000, shares: 0, avgPrice: 0 },
+      'Credit Suisse': { cash: 700000000, shares: 0, avgPrice: 0 },
+      'Morgan Stanley': { cash: 700000000, shares: 0, avgPrice: 0 },
+      'Merrill Lynch': { cash: 700000000, shares: 0, avgPrice: 0 },
+      'XP': { cash: 700000000, shares: 0, avgPrice: 0 }
+    };
+    let ipo = { total: 8000000000, remaining: 8000000000, value: 0 };
 
-function renderBook() {
-  document.getElementById('buyBook').innerHTML = '<h3>Compra</h3>' + bookHTML(buyBook.slice(0, 20), 'buy');
-  document.getElementById('sellBook').innerHTML = '<h3>Venda</h3>' + bookHTML(sellBook.slice(0, 20), 'sell');
-  document.getElementById('acoesRestantes').textContent = acoesBradesco;
-  document.getElementById('capitalCaptado').textContent = capitalCaptado.toFixed(2);
-}
+    function placeManualOrder() {
+      const type = document.getElementById('manualType').value;
+      const qty = parseInt(document.getElementById('manualQty').value);
+      const price = parseFloat(document.getElementById('manualPrice').value);
+      if (type === 'buy') buyBook.push({ qty, price, player: 'UBS' });
+      else sellBook.push({ qty, price, player: 'UBS' });
+    }
 
-function bookHTML(book, tipo) {
-  return '<table><tr><th>Player</th><th>Qtd</th><th>Preço</th></tr>' +
-    book.map(o => `<tr class="${tipo}"><td>${o.player}</td><td>${o.qtd}</td><td>${o.preco.toFixed(2)}</td></tr>`).join('') +
-    '</table>';
-}
+    function matchOrders() {
+      buyBook.sort((a, b) => b.price - a.price);
+      sellBook.sort((a, b) => a.price - b.price);
+      while (buyBook.length && sellBook.length && buyBook[0].price >= sellBook[0].price) {
+        const qty = Math.min(buyBook[0].qty, sellBook[0].qty);
+        const price = sellBook[0].price;
+        const buyer = buyBook[0].player, seller = sellBook[0].player;
 
-function adicionarOrdemManual() {
-  const tipo = document.getElementById('ordemTipo').value;
-  const qtd = parseInt(document.getElementById('ordemQtd').value);
-  const preco = parseFloat(document.getElementById('ordemPreco').value);
-  const ordem = { player: 'UBS', qtd, preco };
-  if (tipo === 'buy') buyBook.push(ordem);
-  else sellBook.push(ordem);
-  ordenarBooks();
-  renderBook();
-}
+        players[buyer].cash -= qty * price;
+        players[buyer].avgPrice = ((players[buyer].avgPrice * players[buyer].shares) + (qty * price)) / (players[buyer].shares + qty);
+        players[buyer].shares += qty;
 
-function ordenarBooks() {
-  buyBook.sort((a, b) => b.preco - a.preco);
-  sellBook.sort((a, b) => a.preco - b.preco);
-}
+        players[seller].cash += qty * price;
+        players[seller].shares -= qty;
 
-function roboUBS() {
-  const modo = document.getElementById('modoRobo').value;
-  const ajuste = parseFloat(document.getElementById('ajustePreco').value);
-  if (modo === 'mercado' && sellBook.length > 0) {
-    const melhor = sellBook[0];
-    adicionarOrdem('UBS', 'buy', melhor.qtd, melhor.preco);
-  } else if (modo === 'abaixo' && sellBook.length > 0) {
-    const preco = sellBook[0].preco - ajuste;
-    adicionarOrdem('UBS', 'buy', 100, preco);
-  }
-}
+        buyBook[0].qty -= qty;
+        sellBook[0].qty -= qty;
 
-function adicionarOrdem(player, tipo, qtd, preco) {
-  const ordem = { player, qtd, preco };
-  if (tipo === 'buy') buyBook.push(ordem);
-  else sellBook.push(ordem);
-  ordenarBooks();
-}
+        if (buyBook[0].qty <= 0) buyBook.shift();
+        if (sellBook[0].qty <= 0) sellBook.shift();
+      }
+    }
 
-function simularCiclo() {
-  if (!rodando) return;
-  ciclo++;
+    function simulateCycle() {
+      if (!running) return;
+      cycle++;
 
-  if (acoesBradesco > 0) {
-    const qtd = Math.min(400000, acoesBradesco);
-    const preco = 30 + Math.random();
-    sellBook.push({ player: 'Bradesco', qtd, preco });
-    acoesBradesco -= qtd;
-    capitalCaptado += qtd * preco;
-  }
+      // Bradesco vendendo ações no IPO
+      if (ipo.remaining > 0) {
+        const qtd = Math.min(400000, ipo.remaining);
+        sellBook.push({ qty: qtd, price: 28.00 + Math.random(), player: 'Bradesco' });
+        ipo.remaining -= qtd;
+        ipo.value += qtd * (28.00);
+      }
 
-  roboUBS();
+      // Robô UBS
+      const botMode = document.getElementById('botMode').value;
+      if (botMode === 'marketBuy' && sellBook.length) {
+        const best = sellBook[0];
+        buyBook.push({ qty: 1000, price: best.price, player: 'UBS' });
+      }
+      if (botMode === 'priceBelow' && sellBook.length) {
+        const delta = parseFloat(document.getElementById('priceDelta').value);
+        const best = sellBook[0];
+        buyBook.push({ qty: 1000, price: best.price - delta, player: 'UBS' });
+      }
 
-  // Executar ordens
-  while (buyBook.length > 0 && sellBook.length > 0 && buyBook[0].preco >= sellBook[0].preco) {
-    const qtd = Math.min(buyBook[0].qtd, sellBook[0].qtd);
-    const preco = sellBook[0].preco;
-    saldo[buyBook[0].player] -= qtd * preco;
-    saldo[sellBook[0].player] += qtd * preco;
-    buyBook[0].qtd -= qtd;
-    sellBook[0].qtd -= qtd;
-    if (buyBook[0].qtd === 0) buyBook.shift();
-    if (sellBook[0].qtd === 0) sellBook.shift();
-  }
-  renderBook();
-}
+      matchOrders();
+      renderBooks();
+      renderPortfolios();
+      renderIPO();
+    }
 
-setInterval(simularCiclo, 1000);
+    function renderBooks() {
+      const buy = document.getElementById('buyBook');
+      const sell = document.getElementById('sellBook');
+      buy.innerHTML = buyBook.map(o => `<tr><td>${o.qty.toLocaleString()}</td><td>${o.price.toFixed(2)}</td></tr>`).join('');
+      sell.innerHTML = sellBook.map(o => `<tr><td>${o.price.toFixed(2)}</td><td>${o.qty.toLocaleString()}</td></tr>`).join('');
+    }
 
-function toggleSimulacao() {
-  rodando = !rodando;
-}
+    function renderPortfolios() {
+      const p = document.getElementById('portfolios');
+      const lastPrice = sellBook[0]?.price || 28;
+      p.innerHTML = Object.entries(players).map(([name, data]) => {
+        const val = data.shares * lastPrice;
+        return `<tr><td>${name}</td><td>R$ ${data.cash.toLocaleString()}</td><td>${data.shares.toLocaleString()}</td><td>${data.avgPrice.toFixed(2)}</td><td>R$ ${val.toLocaleString()}</td></tr>`;
+      }).join('');
+    }
 
-function salvarEstado() {
-  const estado = {
-    buyBook, sellBook, saldo, acoesBradesco, capitalCaptado, ciclo
-  };
-  localStorage.setItem('estadoSimulador', JSON.stringify(estado));
-}
+    function renderIPO() {
+      document.getElementById('ipoRemaining').textContent = ipo.remaining.toLocaleString();
+      document.getElementById('ipoValue').textContent = ipo.value.toLocaleString();
+    }
 
-function carregarEstado() {
-  const estado = JSON.parse(localStorage.getItem('estadoSimulador'));
-  if (estado) {
-    buyBook = estado.buyBook;
-    sellBook = estado.sellBook;
-    saldo = estado.saldo;
-    acoesBradesco = estado.acoesBradesco;
-    capitalCaptado = estado.capitalCaptado;
-    ciclo = estado.ciclo;
-    renderBook();
-  }
-}
-</script></body>
-</html>
+    function toggleSim() { running = !running; }
+
+    function saveState() {
+      localStorage.setItem('book_sim', JSON.stringify({ players, buyBook, sellBook, ipo }));
+    }
+
+    function loadState() {
+      const state = JSON.parse(localStorage.getItem('book_sim'));
+      if (state) {
+        players = state.players;
+        buyBook = state.buyBook;
+        sellBook = state.sellBook;
+        ipo = state.ipo;
+        renderBooks();
+        renderPortfolios();
+        renderIPO();
+      }
+    }
+
+    setInterval(simulateCycle, 1000);
+  </script></body>
+  </html>
