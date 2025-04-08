@@ -1,185 +1,63 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>Simulador PETR4</title>
+  <meta charset="UTF-8">
+  <title>Simulador de Mercado - PETR4</title>
   <style>
-    body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; }
-    .book-container { display: flex; justify-content: space-around; width: 100%; max-width: 1200px; margin-top: 20px; }
-    .book { width: 45%; max-height: 400px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; border-radius: 10px; }
-    .buy { background-color: #e0ffe0; }
-    .sell { background-color: #ffe0e0; }
-    .order-form, .control-panel, .portfolio { margin-top: 20px; width: 100%; max-width: 1200px; }
+    body { font-family: Arial, sans-serif; margin: 10px; display: flex; flex-direction: column; align-items: center; }
+    h1 { text-align: center; }
+    #bookContainer { display: flex; justify-content: space-between; width: 90%; margin-bottom: 10px; }
+    .book { width: 45%; max-height: 300px; overflow-y: scroll; border: 1px solid #ccc; padding: 10px; }
+    .book h3 { text-align: center; }
+    .buy { background-color: #d4f4dd; }
+    .sell { background-color: #f4d4d4; }
     table { width: 100%; border-collapse: collapse; }
-    th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
-    .highlight { font-weight: bold; }
+    th, td { border: 1px solid #999; padding: 4px; text-align: right; }
+    #manualForm, #botConfig, #portfolio { margin: 10px 0; width: 90%; }
+    #manualForm input, #botConfig input, #manualForm select, #botConfig select { margin-right: 5px; }
+    #portfolio table { margin-top: 10px; width: 100%; }
+    .paused { background-color: #ff0; }
   </style>
 </head>
 <body>
-  <h1>Simulador de Book PETR4</h1>  <div class="portfolio">
-    <h2>Portfólios</h2>
-    <table>
-      <thead>
-        <tr><th>Player</th><th>Caixa</th><th>Ações</th><th>Preço Médio</th><th>Valor Atual</th></tr>
-      </thead>
-      <tbody id="portfolios">
-      </tbody>
-    </table>
-  </div>  <div class="book-container">
-    <div class="book buy">
-      <h2>Book de Compras</h2>
-      <table><thead><tr><th>Qtd</th><th>Preço</th></tr></thead>
-      <tbody id="buyBook"></tbody></table>
-    </div>
-    <div class="book sell">
-      <h2>Book de Vendas</h2>
-      <table><thead><tr><th>Preço</th><th>Qtd</th></tr></thead>
-      <tbody id="sellBook"></tbody></table>
-    </div>
-  </div>  <div class="order-form">
-    <h2>Ordem Manual - UBS</h2>
-    <label>Tipo:
-      <select id="manualType">
-        <option value="buy">Compra</option>
-        <option value="sell">Venda</option>
-      </select>
-    </label>
-    <label>Quantidade:
-      <input type="number" id="manualQty" min="100" step="100" />
-    </label>
-    <label>Preço:
-      <input type="number" id="manualPrice" step="0.01" />
-    </label>
-    <button onclick="placeManualOrder()">Enviar Ordem</button>
-  </div>  <div class="control-panel">
-    <h2>Controle</h2>
-    <label>Robô UBS:
-      <select id="botMode">
-        <option value="none">Desligado</option>
-        <option value="marketBuy">Comprar a mercado</option>
-        <option value="priceBelow">Comprar abaixo</option>
-      </select>
-    </label>
-    <label>Valor abaixo (se aplicável):
-      <input type="number" id="priceDelta" step="0.01" value="0.2" />
-    </label>
-    <button onclick="toggleSim()">Pausar/Continuar</button>
-    <button onclick="saveState()">Salvar Estado</button>
-    <button onclick="loadState()">Carregar Estado</button>
-  </div>  <div class="control-panel">
-    <h2>IPO Petrobras (Bradesco)</h2>
-    <p>Total: <span id="ipoTotal">8.000.000.000</span> | Restantes: <span id="ipoRemaining">8.000.000.000</span> | Captado: R$ <span id="ipoValue">0</span></p>
-  </div>  <script>
-    let buyBook = [], sellBook = [], running = true, cycle = 0;
-    let players = {
-      'UBS': { cash: 700000000, shares: 0, avgPrice: 0 },
-      'Credit Suisse': { cash: 700000000, shares: 0, avgPrice: 0 },
-      'Morgan Stanley': { cash: 700000000, shares: 0, avgPrice: 0 },
-      'Merrill Lynch': { cash: 700000000, shares: 0, avgPrice: 0 },
-      'XP': { cash: 700000000, shares: 0, avgPrice: 0 }
-    };
-    let ipo = { total: 8000000000, remaining: 8000000000, value: 0 };
-
-    function placeManualOrder() {
-      const type = document.getElementById('manualType').value;
-      const qty = parseInt(document.getElementById('manualQty').value);
-      const price = parseFloat(document.getElementById('manualPrice').value);
-      if (type === 'buy') buyBook.push({ qty, price, player: 'UBS' });
-      else sellBook.push({ qty, price, player: 'UBS' });
-    }
-
-    function matchOrders() {
-      buyBook.sort((a, b) => b.price - a.price);
-      sellBook.sort((a, b) => a.price - b.price);
-      while (buyBook.length && sellBook.length && buyBook[0].price >= sellBook[0].price) {
-        const qty = Math.min(buyBook[0].qty, sellBook[0].qty);
-        const price = sellBook[0].price;
-        const buyer = buyBook[0].player, seller = sellBook[0].player;
-
-        players[buyer].cash -= qty * price;
-        players[buyer].avgPrice = ((players[buyer].avgPrice * players[buyer].shares) + (qty * price)) / (players[buyer].shares + qty);
-        players[buyer].shares += qty;
-
-        players[seller].cash += qty * price;
-        players[seller].shares -= qty;
-
-        buyBook[0].qty -= qty;
-        sellBook[0].qty -= qty;
-
-        if (buyBook[0].qty <= 0) buyBook.shift();
-        if (sellBook[0].qty <= 0) sellBook.shift();
-      }
-    }
-
-    function simulateCycle() {
-      if (!running) return;
-      cycle++;
-
-      // Bradesco vendendo ações no IPO
-      if (ipo.remaining > 0) {
-        const qtd = Math.min(400000, ipo.remaining);
-        sellBook.push({ qty: qtd, price: 28.00 + Math.random(), player: 'Bradesco' });
-        ipo.remaining -= qtd;
-        ipo.value += qtd * (28.00);
-      }
-
-      // Robô UBS
-      const botMode = document.getElementById('botMode').value;
-      if (botMode === 'marketBuy' && sellBook.length) {
-        const best = sellBook[0];
-        buyBook.push({ qty: 1000, price: best.price, player: 'UBS' });
-      }
-      if (botMode === 'priceBelow' && sellBook.length) {
-        const delta = parseFloat(document.getElementById('priceDelta').value);
-        const best = sellBook[0];
-        buyBook.push({ qty: 1000, price: best.price - delta, player: 'UBS' });
-      }
-
-      matchOrders();
-      renderBooks();
-      renderPortfolios();
-      renderIPO();
-    }
-
-    function renderBooks() {
-      const buy = document.getElementById('buyBook');
-      const sell = document.getElementById('sellBook');
-      buy.innerHTML = buyBook.map(o => `<tr><td>${o.qty.toLocaleString()}</td><td>${o.price.toFixed(2)}</td></tr>`).join('');
-      sell.innerHTML = sellBook.map(o => `<tr><td>${o.price.toFixed(2)}</td><td>${o.qty.toLocaleString()}</td></tr>`).join('');
-    }
-
-    function renderPortfolios() {
-      const p = document.getElementById('portfolios');
-      const lastPrice = sellBook[0]?.price || 28;
-      p.innerHTML = Object.entries(players).map(([name, data]) => {
-        const val = data.shares * lastPrice;
-        return `<tr><td>${name}</td><td>R$ ${data.cash.toLocaleString()}</td><td>${data.shares.toLocaleString()}</td><td>${data.avgPrice.toFixed(2)}</td><td>R$ ${val.toLocaleString()}</td></tr>`;
-      }).join('');
-    }
-
-    function renderIPO() {
-      document.getElementById('ipoRemaining').textContent = ipo.remaining.toLocaleString();
-      document.getElementById('ipoValue').textContent = ipo.value.toLocaleString();
-    }
-
-    function toggleSim() { running = !running; }
-
-    function saveState() {
-      localStorage.setItem('book_sim', JSON.stringify({ players, buyBook, sellBook, ipo }));
-    }
-
-    function loadState() {
-      const state = JSON.parse(localStorage.getItem('book_sim'));
-      if (state) {
-        players = state.players;
-        buyBook = state.buyBook;
-        sellBook = state.sellBook;
-        ipo = state.ipo;
-        renderBooks();
-        renderPortfolios();
-        renderIPO();
-      }
-    }
-
-    setInterval(simulateCycle, 1000);
-  </script></body>
-  </html>
+<h1>Simulador de Mercado PETR4</h1><div id="bookContainer">
+  <div class="book buy">
+    <h3>Book de Compras</h3>
+    <table id="buyBook"></table>
+  </div>
+  <div class="book sell">
+    <h3>Book de Vendas</h3>
+    <table id="sellBook"></table>
+  </div>
+</div><div id="manualForm">
+  <h3>Inserir Ordem Manual</h3>
+  <select id="orderType">
+    <option value="buy">Compra</option>
+    <option value="sell">Venda</option>
+  </select>
+  Quantidade: <input type="number" id="manualQty" value="100">
+  Preço: <input type="number" step="0.01" id="manualPrice" value="30">
+  <button onclick="submitManualOrder()">Enviar</button>
+</div><div id="botConfig">
+  <h3>Configurar Robô UBS</h3>
+  <select id="botMode">
+    <option value="marketBuy">Compra a Mercado</option>
+    <option value="below">Ordem X abaixo</option>
+  </select>
+  Distância/Preço (ex: 0.20): <input type="number" step="0.01" id="botDistance" value="0.20">
+  Quantidade: <input type="number" id="botQty" value="100">
+</div><div>
+  <button onclick="togglePause()">Pausar/Continuar</button>
+  <button onclick="saveState()">Salvar Jogo</button>
+  <button onclick="loadState()">Carregar Jogo</button>
+</div><div id="portfolio">
+  <h3>Portfólios</h3>
+  <table id="portTable">
+    <thead>
+      <tr><th>Player</th><th>Caixa</th><th>Ações</th><th>Preço Médio</th><th>Valor Total</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div><script>
+// Lógica do simulador será adicionada aqui
+</script></body>
+</html>
