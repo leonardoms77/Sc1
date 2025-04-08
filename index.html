@@ -1,166 +1,231 @@
-<!DOCTYPE html><html lang="pt-BR">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulador de Mercado - PETR4</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Simulador de Book de PETR4</title>
   <style>
     body {
-      font-family: sans-serif;
-      background: #111;
+      font-family: monospace;
+      background-color: #111;
       color: #eee;
       margin: 0;
-      padding: 1rem;
+      padding: 0;
     }
-    h1, h2 {
+    h2, h3 {
       text-align: center;
+      margin: 10px 0;
     }
-    .container {
+    .book-container {
       display: flex;
-      gap: 1rem;
-      justify-content: space-between;
-      margin-top: 1rem;
+      justify-content: space-around;
+      padding: 10px;
     }
     .book {
       width: 45%;
+      background-color: #222;
       border: 1px solid #444;
-      padding: 1rem;
+      padding: 10px;
       overflow-y: auto;
-      max-height: 400px;
+      max-height: 300px;
     }
     .book h3 {
-      margin-top: 0;
+      text-align: center;
+      margin-bottom: 5px;
     }
-    .order {
+    .row {
       display: flex;
       justify-content: space-between;
-      padding: 0.25rem;
-      margin-bottom: 0.25rem;
+      padding: 2px 5px;
+      border-bottom: 1px solid #333;
     }
-    .buy { background-color: #002f00; }
-    .sell { background-color: #300000; }
-    .executing { background-color: #555500; }
-    .ipo-panel {
+    .row.executed {
+      background-color: #665500;
+    }
+    .buy {
+      color: #4cff4c;
+    }
+    .sell {
+      color: #ff4c4c;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      font-weight: bold;
+      border-bottom: 2px solid #666;
+      margin-bottom: 4px;
+    }
+    .portfolio {
       background-color: #222;
-      border: 1px solid #555;
-      padding: 1rem;
-      margin-bottom: 1rem;
+      margin: 10px;
+      padding: 10px;
+      border: 1px solid #444;
     }
-    .ipo-panel div {
-      margin: 0.5rem 0;
+    .ipo-panel {
+      text-align: center;
+      padding: 10px;
+      background-color: #222;
+      border-bottom: 1px solid #444;
     }
   </style>
 </head>
 <body>
-  <h1>Simulador de Book de Ofertas - PETR4</h1>  <div class="ipo-panel">
-    <h2>IPO Petrobras</h2>
-    <div id="ipo-restantes">Ações restantes: 8.000.000.000</div>
-    <div id="ipo-hoje">Vendidas hoje: 0</div>
-    <div id="ipo-hoje-valor">Valor arrecadado hoje: R$ 0</div>
-    <div id="ipo-total">Total arrecadado: R$ 0</div>
-  </div>  <div class="container">
-    <div class="book" id="book-compra">
-      <h3>Book de Compras</h3>
-    </div>
-    <div class="book" id="book-venda">
-      <h3>Book de Vendas</h3>
-    </div>
-  </div>  <script>
-    let ipoTotal = 8000000000;
-    let ipoVendidasHoje = 0;
-    let ipoTotalArrecadado = 0;
 
-    const players = {
-      'UBS Pactual': { caixa: 700_000_000, acoes: 0 },
-      'Credit Suisse': { caixa: 700_000_000, acoes: 0 },
-      'Morgan Stanley': { caixa: 700_000_000, acoes: 0 },
-      'Merrill Lynch': { caixa: 700_000_000, acoes: 0 },
-      'XP': { caixa: 700_000_000, acoes: 0 },
-      'Bradesco': { caixa: 700_000_000, acoes: 0 },
+  <div class="ipo-panel" id="ipoPanel">
+    <h2>IPO de PETR4</h2>
+    <div>Ações restantes: <span id="acoesRestantes">8.000.000.000</span></div>
+    <div>Ações vendidas hoje: <span id="acoesVendidasHoje">0</span></div>
+    <div>Capital arrecadado: R$ <span id="capitalArrecadado">0,00</span></div>
+  </div>
+
+  <div class="book-container">
+    <div class="book" id="buyBook">
+      <h3>Book de Compra</h3>
+      <div class="header">
+        <span>Banco</span><span>Qtd</span><span>Preço</span>
+      </div>
+    </div>
+    <div class="book" id="sellBook">
+      <h3>Book de Venda</h3>
+      <div class="header">
+        <span>Banco</span><span>Qtd</span><span>Preço</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="portfolio">
+    <h3>Portfólios</h3>
+    <div id="portfolioList"></div>
+  </div>
+
+  <script>
+    const buyBook = [];
+    const sellBook = [];
+    const portfolios = {
+      'UBS Pactual': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
+      'Credit Suisse': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
+      'Morgan Stanley': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
+      'Merrill Lynch': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
+      'XP': { caixa: 700_000_000, acoes: 0, precoMedio: 0 },
+      'Bradesco': { caixa: 0, acoes: 8_000_000_000, arrecadado: 0 }
     };
 
-    let bookCompra = [];
-    let bookVenda = [];
+    let acoesVendidasHoje = 0;
 
-    function renderBook() {
-      const compra = document.getElementById("book-compra");
-      const venda = document.getElementById("book-venda");
+    function atualizarBook() {
+      const buyDiv = document.getElementById("buyBook");
+      const sellDiv = document.getElementById("sellBook");
+      buyDiv.innerHTML = '<h3>Book de Compra</h3><div class="header"><span>Banco</span><span>Qtd</span><span>Preço</span></div>';
+      sellDiv.innerHTML = '<h3>Book de Venda</h3><div class="header"><span>Banco</span><span>Qtd</span><span>Preço</span></div>';
 
-      compra.innerHTML = '<h3>Book de Compras</h3>';
-      venda.innerHTML = '<h3>Book de Vendas</h3>';
-
-      bookCompra.slice(0, 20).forEach(o => {
-        const div = document.createElement("div");
-        div.className = `order buy ${o.executing ? 'executing' : ''}`;
-        div.innerHTML = `<span>${o.banco}</span><span>${o.qtd.toLocaleString()}</span><span>R$ ${o.preco.toFixed(2)}</span>`;
-        compra.appendChild(div);
+      buyBook.slice(0, 20).forEach(ordem => {
+        const row = document.createElement("div");
+        row.className = "row buy";
+        if (ordem.executado) row.classList.add("executed");
+        row.innerHTML = `<span>${ordem.banco}</span><span>${ordem.quantidade}</span><span>R$ ${ordem.preco.toFixed(2)}</span>`;
+        buyDiv.appendChild(row);
       });
 
-      bookVenda.slice(0, 20).forEach(o => {
-        const div = document.createElement("div");
-        div.className = `order sell ${o.executing ? 'executing' : ''}`;
-        div.innerHTML = `<span>${o.banco}</span><span>${o.qtd.toLocaleString()}</span><span>R$ ${o.preco.toFixed(2)}</span>`;
-        venda.appendChild(div);
+      sellBook.slice(0, 20).forEach(ordem => {
+        const row = document.createElement("div");
+        row.className = "row sell";
+        if (ordem.executado) row.classList.add("executed");
+        row.innerHTML = `<span>${ordem.banco}</span><span>${ordem.quantidade}</span><span>R$ ${ordem.preco.toFixed(2)}</span>`;
+        sellDiv.appendChild(row);
       });
     }
 
-    function atualizarIPO(valorVenda, qtd) {
-      ipoTotal -= qtd;
-      ipoVendidasHoje += qtd;
-      ipoTotalArrecadado += valorVenda;
-
-      document.getElementById("ipo-restantes").innerText = `Ações restantes: ${ipoTotal.toLocaleString()}`;
-      document.getElementById("ipo-hoje").innerText = `Vendidas hoje: ${ipoVendidasHoje.toLocaleString()}`;
-      document.getElementById("ipo-hoje-valor").innerText = `Valor arrecadado hoje: R$ ${qtd * valorVenda}`;
-      document.getElementById("ipo-total").innerText = `Total arrecadado: R$ ${ipoTotalArrecadado.toLocaleString()}`;
-    }
-
-    function gerarOrdemBradesco() {
-      // Gera lotes variados entre 100 e 3.000 ações
-      const lote = Math.floor(Math.random() * 30 + 1) * 100;
-      const preco = 30 + Math.random();
-      bookVenda.push({ banco: 'Bradesco', qtd: lote, preco, executing: false });
-    }
-
-    function executarOrdens() {
-      bookCompra.sort((a, b) => b.preco - a.preco);
-      bookVenda.sort((a, b) => a.preco - b.preco);
-
-      for (let i = 0; i < Math.min(bookCompra.length, bookVenda.length); i++) {
-        const compra = bookCompra[i];
-        const venda = bookVenda[i];
-
-        if (compra.preco >= venda.preco) {
-          const qtdExecutada = Math.min(compra.qtd, venda.qtd);
-          const preco = venda.preco;
-
-          players[compra.banco].caixa -= qtdExecutada * preco;
-          players[compra.banco].acoes += qtdExecutada;
-
-          players[venda.banco].caixa += qtdExecutada * preco;
-          players[venda.banco].acoes -= qtdExecutada;
-
-          if (venda.banco === 'Bradesco') atualizarIPO(preco, qtdExecutada);
-
-          compra.qtd -= qtdExecutada;
-          venda.qtd -= qtdExecutada;
-
-          compra.executing = true;
-          venda.executing = true;
-
-          if (compra.qtd === 0) bookCompra.splice(i, 1);
-          if (venda.qtd === 0) bookVenda.splice(i, 1);
-
-          break;
-        }
+    function atualizarPortfolio() {
+      const portDiv = document.getElementById("portfolioList");
+      portDiv.innerHTML = "";
+      for (let banco in portfolios) {
+        const p = portfolios[banco];
+        const valorAtual = p.acoes * getPrecoAtual();
+        const linha = document.createElement("div");
+        linha.innerHTML = `<strong>${banco}:</strong> Caixa: R$ ${p.caixa.toLocaleString()} | Ações: ${p.acoes} | Médio: R$ ${p.precoMedio.toFixed(2)} | Valor atual: R$ ${valorAtual.toLocaleString()}`;
+        portDiv.appendChild(linha);
       }
     }
 
-    function ciclo() {
-      gerarOrdemBradesco();
-      executarOrdens();
-      renderBook();
+    function getPrecoAtual() {
+      const melhoresVendas = sellBook.slice().sort((a,b) => a.preco - b.preco);
+      return melhoresVendas.length ? melhoresVendas[0].preco : 28.00;
     }
 
-    setInterval(ciclo, 1000);
-  </script></body>
+    function executarOrdens() {
+      buyBook.sort((a,b) => b.preco - a.preco);
+      sellBook.sort((a,b) => a.preco - b.preco);
+
+      for (let i = 0; i < buyBook.length; i++) {
+        for (let j = 0; j < sellBook.length; j++) {
+          const compra = buyBook[i];
+          const venda = sellBook[j];
+          if (compra.preco >= venda.preco && compra.quantidade > 0 && venda.quantidade > 0) {
+            const qtd = Math.min(compra.quantidade, venda.quantidade);
+            const valor = qtd * venda.preco;
+
+            if (portfolios[compra.banco].caixa >= valor) {
+              compra.quantidade -= qtd;
+              venda.quantidade -= qtd;
+              portfolios[compra.banco].caixa -= valor;
+              portfolios[compra.banco].acoes += qtd;
+              const totalGasto = portfolios[compra.banco].precoMedio * (portfolios[compra.banco].acoes - qtd) + valor;
+              portfolios[compra.banco].precoMedio = totalGasto / portfolios[compra.banco].acoes;
+
+              portfolios[venda.banco].caixa += valor;
+              portfolios[venda.banco].acoes -= qtd;
+
+              compra.executado = true;
+              venda.executado = true;
+
+              // Atualizar IPO se foi o Bradesco
+              if (venda.banco === "Bradesco") {
+                portfolios["Bradesco"].acoes -= qtd;
+                portfolios["Bradesco"].arrecadado += valor;
+                acoesVendidasHoje += qtd;
+                atualizarPainelIPO();
+              }
+
+              break;
+            }
+          }
+        }
+      }
+
+      atualizarBook();
+      atualizarPortfolio();
+    }
+
+    function atualizarPainelIPO() {
+      document.getElementById("acoesRestantes").innerText = portfolios["Bradesco"].acoes.toLocaleString();
+      document.getElementById("acoesVendidasHoje").innerText = acoesVendidasHoje.toLocaleString();
+      document.getElementById("capitalArrecadado").innerText = portfolios["Bradesco"].arrecadado.toLocaleString("pt-BR", {minimumFractionDigits: 2});
+    }
+
+    function colocarOrdem(banco, quantidade, preco, tipo) {
+      const ordem = { banco, quantidade, preco };
+      if (tipo === "compra") {
+        buyBook.push(ordem);
+      } else {
+        sellBook.push(ordem);
+      }
+    }
+
+    // Bradesco vende automaticamente
+    setInterval(() => {
+      const preco = getPrecoAtual() + (Math.random() * 0.2);
+      const qtd = [100,200,300,500,1000,2000,3000][Math.floor(Math.random() * 7)];
+      if (portfolios["Bradesco"].acoes > 0) {
+        colocarOrdem("Bradesco", qtd, preco, "venda");
+      }
+    }, 1000);
+
+    // Execução a cada 1 segundo
+    setInterval(executarOrdens, 1000);
+
+    atualizarBook();
+    atualizarPortfolio();
+    atualizarPainelIPO();
+  </script>
+</body>
 </html>
