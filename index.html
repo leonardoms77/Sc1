@@ -1,139 +1,51 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html><html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Simulador de Book PETR4</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Book de Ofertas</title>
   <style>
-    body {
-      font-family: sans-serif;
-      margin: 0;
-      padding: 0;
-      background: #111;
-      color: #eee;
-    }
-    .container {
-      display: grid;
-      grid-template-columns: 1fr 2fr 1fr;
-      gap: 10px;
-      padding: 10px;
-    }
-    .book {
-      background: #222;
-      padding: 10px;
-      max-height: 500px;
-      overflow-y: scroll;
-      border-radius: 10px;
-    }
-    .book h2 {
-      text-align: center;
-      margin-top: 0;
-    }
-    .order.buy {
-      background: #003300;
-      padding: 3px;
-      margin: 2px 0;
-    }
-    .order.sell {
-      background: #330000;
-      padding: 3px;
-      margin: 2px 0;
-    }
-    .order.executing {
-      background: #665500;
-      color: #fff;
-    }
-    .portfolio, .controls {
-      background: #222;
-      padding: 10px;
-      border-radius: 10px;
-    }
-    .portfolio h2, .controls h2 {
-      text-align: center;
-    }
-    label, input, select {
-      display: block;
-      width: 100%;
-      margin-bottom: 5px;
-    }
-    button {
-      width: 100%;
-      margin-top: 10px;
-      padding: 5px;
-      background: #444;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #666;
-    }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #f0f2f5; }
+    .container { display: flex; flex-direction: row; padding: 10px; gap: 10px; }
+    .book, .portfolio, .controls { background: white; border-radius: 8px; padding: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); height: 90vh; overflow-y: auto; }
+    .book { flex: 1; }
+    .portfolio { flex: 1; }
+    .controls { flex: 1; }
+    h2 { margin-top: 0; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 4px; text-align: right; }
+    tr.buy { background-color: #d1f0d1; }
+    tr.sell { background-color: #f8d1d1; }
+    tr.executing { background-color: #ffe680; }
+    .highlight { font-weight: bold; }
+    .section { margin-bottom: 20px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="book" id="buyBook">
+    <div class="book" id="buy-book">
       <h2>Book de Compra</h2>
-    </div>
-    <div>
-      <div class="portfolio" id="portfolio">
-        <h2>Portfólio</h2>
-        <p>Caixa: R$ <span id="cash">700000000</span></p>
-        <p>Ações: <span id="shares">0</span></p>
-        <p>Preço Médio: R$ <span id="avgPrice">0,00</span></p>
-        <p>Valor Atual: R$ <span id="totalValue">0,00</span></p>
-      </div>
-      <div class="controls">
-        <h2>Ordem Manual</h2>
-        <select id="orderType">
-          <option value="buy">Comprar</option>
-          <option value="sell">Vender</option>
-        </select>
-        <input type="number" id="price" placeholder="Preço">
-        <input type="number" id="quantity" placeholder="Quantidade">
-        <button onclick="addManualOrder()">Inserir Ordem</button>
-        <h3>Robô</h3>
-        <select id="robotMode">
-          <option value="market">A Mercado</option>
-          <option value="below">Abaixo do preço</option>
-        </select>
-        <input type="number" id="robotOffset" placeholder="Distância em centavos">
-        <input type="number" id="robotQty" placeholder="Qtd por ordem">
-        <button onclick="toggleRobot()" id="robotBtn">Ativar Robô</button>
-        <h3>Simulação</h3>
-        <button onclick="toggleSim()" id="simBtn">Pausar</button>
-        <button onclick="saveStatus()">Salvar Estado</button>
-        <button onclick="loadStatus()">Carregar Estado</button>
-      </div>
-    </div>
-    <div class="book" id="sellBook">
-      <h2>Book de Venda</h2>
-    </div>
+      <table id="buy-orders">
+        <thead><tr><th>Qtd</th><th>Preço</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div><div class="portfolio">
+  <h2>Meu Portfólio</h2>
+  <div class="section" id="portfolio"></div>
+  <h3>Robô</h3>
+  <div class="section" id="robot-controls"></div>
+  <h3>Controles</h3>
+  <div class="section" id="general-controls"></div>
+</div>
+
+<div class="book" id="sell-book">
+  <h2>Book de Venda</h2>
+  <table id="sell-orders">
+    <thead><tr><th>Preço</th><th>Qtd</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+
   </div>  <script>
-    let buyOrders = [], sellOrders = [];
-    let executingOrders = new Set();
-    let cash = 700000000, shares = 0, avgPrice = 0;
-    let simRunning = true, robotOn = false;
-
-    function updatePortfolio() {
-      document.getElementById('cash').innerText = cash.toFixed(2);
-      document.getElementById('shares').innerText = shares;
-      document.getElementById('avgPrice').innerText = avgPrice.toFixed(2);
-      let currentPrice = sellOrders.length > 0 ? sellOrders[0].price : avgPrice;
-      document.getElementById('totalValue').innerText = (currentPrice * shares).toFixed(2);
-    }
-
-    function renderBooks() {
-      const buyBook = document.getElementById("buyBook");
-      const sellBook = document.getElementById("sellBook");
-
-      buyBook.innerHTML = "<h2>Book de Compra</h2>";
-      sellBook.innerHTML = "<h2>Book de Venda</h2>";
-
-      buyOrders.slice(0,20).forEach(o => {
-        const div = document.createElement("div");
-        div.className = "order buy" + (executingOrders.has(o.id) ? " executing" : "");
-        div.textContent = `${o.qty.toLocaleString()} @ R$ ${o.price.toFixed(2)}`;
-        buyBook.appendChild(div);
-      });
-      sellOrders.slice(0,20).forEach(o => {
-        const div = document.createElement("div");
-        div.className = "order sell" + (executingOrders.has(o.id) ? " executing
+    // Aqui você irá adicionar os scripts JavaScript depois.
+  </script></body>
+</html>
