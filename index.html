@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,8 +38,6 @@
       text-align: center;
       padding: 2px;
     }
-    <div id="trade-history" style="margin-top: 20px;">
-  <h
     .portfolio, .history { flex: 1 1 100%; font-size: 14px; }
     .chart { flex: 1 1 100%; height: 300px; }
     #rotateBtn {
@@ -56,59 +55,52 @@
 <body>
   <button id="rotateBtn">Girar Tela</button>
   <div class="container">
-    <div id="trade-history" style="margin-top: 20px;">
-  <h2>Histórico de Negociações</h2>
-  <table id="history-table" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr>
-        <th>Hora</th>
-        <th>Comprador</th>
-        <th>Vendedor</th>
-        <th>Quantidade</th>
-        <th>Preço</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
-    </div>
+    
     <div class="book buy">
       <h3>Book de Compras</h3>
-      <table id="buyBook"><thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead><tbody></tbody></table>
+      <table id="buyBook">
+        <thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
+
     <div class="book sell">
       <h3>Book de Vendas</h3>
-      <table id="sellBook"><thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead><tbody></tbody></table>
+      <table id="sellBook">
+        <thead><tr><th>Banco</th><th>Qtd</th><th>Preço</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
+
     <div class="portfolio">
       <h3>Portfólios</h3>
       <div id="portfolios"></div>
     </div>
-    
+
     <div class="history">
-  <h3>Histórico de Negociações</h3>
-  <table id="history-table" style="width: 100%; border-collapse: collapse;">
-    <thead>
-      <tr>
-        <th>Hora</th>
-        <th>Comprador</th>
-        <th>Vendedor</th>
-        <th>Quantidade</th>
-        <th>Preço</th>
-      </tr>
-    </thead>
-    <tbody>
-    </tbody>
-  </table>
+      <h3>Histórico de Negociações</h3>
+      <table id="history-table" style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th>Hora</th>
+            <th>Comprador</th>
+            <th>Vendedor</th>
+            <th>Quantidade</th>
+            <th>Preço</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
+
     <div class="chart">
       <canvas id="candlestickChart" width="600" height="300"></canvas>
     </div>
+
   </div>
+
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script>
-    // Script será adicionado na próxima etapa: lógica de bots, ordens, histórico, portfólios e gráfico.
-  </script>
+
   <script>
     document.getElementById("rotateBtn").addEventListener("click", () => {
       if (screen.orientation) {
@@ -116,67 +108,95 @@
       }
     });
   </script>
+
   <script>
-function executarOrdens() {
-  // Ordenar por prioridade de preço e tempo
-  buyOrders.sort((a, b) => b.price - a.price || a.time - b.time);
-  sellOrders.sort((a, b) => a.price - b.price || a.time - b.time);
+    // Dados fictícios para testes
+    const buyOrders = [
+      { bank: "Banco A", quantity: 1000, price: 10.50, time: Date.now() },
+      { bank: "Banco C", quantity: 500, price: 10.60, time: Date.now() }
+    ];
 
-  let execucoes = [];
+    const sellOrders = [
+      { bank: "Banco B", quantity: 800, price: 10.40, time: Date.now() },
+      { bank: "Banco D", quantity: 600, price: 10.70, time: Date.now() }
+    ];
 
-  while (buyOrders.length > 0 && sellOrders.length > 0) {
-    const buy = buyOrders[0];
-    const sell = sellOrders[0];
+    function executarOrdens() {
+      buyOrders.sort((a, b) => b.price - a.price || a.time - b.time);
+      sellOrders.sort((a, b) => a.price - b.price || a.time - b.time);
 
-    if (buy.price >= sell.price) {
-      // Quantidade executada
-      const quantidade = Math.min(buy.quantity, sell.quantity);
-      const precoExecucao = sell.time <= buy.time ? sell.price : buy.price;
+      let execucoes = [];
 
-      execucoes.push({
-        comprador: buy.bank,
-        vendedor: sell.bank,
-        quantidade,
-        preco: precoExecucao,
-        hora: new Date().toLocaleTimeString()
+      while (buyOrders.length > 0 && sellOrders.length > 0) {
+        const buy = buyOrders[0];
+        const sell = sellOrders[0];
+
+        if (buy.price >= sell.price) {
+          const quantidade = Math.min(buy.quantity, sell.quantity);
+          const precoExecucao = sell.time <= buy.time ? sell.price : buy.price;
+
+          execucoes.push({
+            comprador: buy.bank,
+            vendedor: sell.bank,
+            quantidade,
+            preco: precoExecucao,
+            hora: new Date().toLocaleTimeString()
+          });
+
+          buy.quantity -= quantidade;
+          sell.quantity -= quantidade;
+
+          if (buy.quantity <= 0) buyOrders.shift();
+          if (sell.quantity <= 0) sellOrders.shift();
+        } else {
+          break;
+        }
+      }
+
+      atualizarBook();
+      atualizarHistorico(execucoes);
+    }
+
+    function atualizarBook() {
+      const buyTbody = document.querySelector("#buyBook tbody");
+      const sellTbody = document.querySelector("#sellBook tbody");
+      buyTbody.innerHTML = "";
+      sellTbody.innerHTML = "";
+
+      buyOrders.forEach(order => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity}</td><td>${order.price.toFixed(2)}</td>`;
+        buyTbody.appendChild(row);
       });
 
-      // Atualizar quantidades
-      buy.quantity -= quantidade;
-      sell.quantity -= quantidade;
-
-      if (buy.quantity <= 0) buyOrders.shift();
-      if (sell.quantity <= 0) sellOrders.shift();
-    } else {
-      break;
+      sellOrders.forEach(order => {
+        const row = document.createElement("tr");
+        row.innerHTML = `<td>${order.bank}</td><td>${order.quantity}</td><td>${order.price.toFixed(2)}</td>`;
+        sellTbody.appendChild(row);
+      });
     }
-  }
 
-  atualizarBook();
-  atualizarHistorico(execucoes);
-}
+    function atualizarHistorico(execucoes) {
+      const tbody = document.querySelector('#history-table tbody');
+      execucoes.forEach(exec => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${exec.hora}</td>
+          <td>${exec.comprador}</td>
+          <td>${exec.vendedor}</td>
+          <td>${exec.quantidade.toLocaleString()}</td>
+          <td style="color: #009900;">R$ ${exec.preco.toFixed(2)}</td>
+        `;
+        tbody.prepend(row);
+        if (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
+      });
+    }
 
-function atualizarHistorico(execucoes) {
-  const tbody = document.querySelector('#history-table tbody');
+    // Executa a simulação a cada 1 segundo
+    setInterval(executarOrdens, 1000);
 
-  execucoes.forEach(exec => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>${exec.hora}</td>
-      <td>${exec.comprador}</td>
-      <td>${exec.vendedor}</td>
-      <td>${exec.quantidade.toLocaleString()}</td>
-      <td style="color: #009900;">R$ ${exec.preco.toFixed(2)}</td>
-    `;
-    tbody.prepend(row);
-    if (tbody.rows.length > 20) tbody.deleteRow(tbody.rows.length - 1);
-  });
-}
-
-// Rodar a cada 1 segundo
-setInterval(() => {
-  executarOrdens();
-}, 1000);
+    // Atualiza o book inicial
+    atualizarBook();
   </script>
 </body>
 </html>
