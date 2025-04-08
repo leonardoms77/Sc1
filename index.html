@@ -99,107 +99,111 @@
 
   <button onclick="girarTela()">Girar tela</button>
 
-  <script>
-    let acoesRestantes = 8000000000;
-    let capitalCaptado = 0;
+      <script>
+  let acoesRestantes = 8000000000;
+  let capitalCaptado = 0;
 
-    const acoesSpan = document.getElementById('acoesRestantes');
-    const capitalSpan = document.getElementById('capitalCaptado');
+  const acoesSpan = document.getElementById('acoesRestantes');
+  const capitalSpan = document.getElementById('capitalCaptado');
 
-    const buyBookBody = document.querySelector('#buyBook tbody');
-    const sellBookBody = document.querySelector('#sellBook tbody');
+  const buyBookBody = document.querySelector('#buyBook tbody');
+  const sellBookBody = document.querySelector('#sellBook tbody');
 
-    const players = [
-      { nome: "UBS Pactual", caixa: 700e6 },
-      { nome: "Credit Suisse", caixa: 700e6 },
-      { nome: "XP", caixa: 700e6 },
-      { nome: "Morgan Stanley", caixa: 700e6 },
-      { nome: "Merrill Lynch", caixa: 700e6 }
-    ];
+  const players = [
+    { nome: "UBS Pactual", caixa: 700e6 },
+    { nome: "Credit Suisse", caixa: 700e6 },
+    { nome: "XP", caixa: 700e6 },
+    { nome: "Morgan Stanley", caixa: 700e6 },
+    { nome: "Merrill Lynch", caixa: 700e6 }
+  ];
 
-    const bradesco = {
-      nome: "Bradesco",
-      estoque: acoesRestantes
-    };
+  const bradesco = {
+    nome: "Bradesco",
+    estoque: acoesRestantes
+  };
 
-    const sellOrders = [];
+  const sellOrders = [];
 
-    function gerarLoteAleatorio() {
-      return Math.floor(Math.random() * 10 + 1) * 100; // múltiplos de 100
-    }
+  function gerarLoteAleatorio() {
+    return Math.floor(Math.random() * 10 + 1) * 100; // múltiplos de 100
+  }
 
-    function gerarPrecoAleatorio() {
-      return (27 + Math.random() * 1).toFixed(2); // entre 27.00 e 28.00
-    }
+  function gerarPrecoAleatorio() {
+    return parseFloat((27 + Math.random() * 1).toFixed(2)); // entre 27.00 e 28.00
+  }
 
-    function gerarOrdemBradesco() {
-      if (acoesRestantes <= 0) return;
+  function gerarOrdemBradesco() {
+    if (acoesRestantes <= 0) return;
 
-      const quantidade = gerarLoteAleatorio();
-      if (acoesRestantes < quantidade) return;
+    const quantidade = gerarLoteAleatorio();
+    if (acoesRestantes < quantidade) return;
 
-      const preco = gerarPrecoAleatorio();
-      sellOrders.push({ banco: bradesco.nome, qtde: quantidade, preco: parseFloat(preco), bradesco: true });
+    const preco = gerarPrecoAleatorio();
+    sellOrders.push({ banco: bradesco.nome, qtde: quantidade, preco, bradesco: true });
 
-      atualizarBook();
-    }
+    atualizarBook();
+  }
 
-    function executarOrdens() {
-      const compradores = players.filter(p => p.nome !== "Bradesco");
+  function executarOrdens() {
+    const compradores = players.filter(p => p.nome !== "Bradesco");
 
-      for (let i = sellOrders.length - 1; i >= 0; i--) {
-        const ordem = sellOrders[i];
-        const comprador = compradores[Math.floor(Math.random() * compradores.length)];
+    for (let i = sellOrders.length - 1; i >= 0; i--) {
+      const ordem = sellOrders[i];
+      const comprador = compradores[Math.floor(Math.random() * compradores.length)];
 
-        if (comprador.caixa >= ordem.qtde * ordem.preco) {
-          // Executa a ordem
-          comprador.caixa -= ordem.qtde * ordem.preco;
+      const custo = ordem.qtde * ordem.preco;
 
-          if (ordem.bradesco) {
-            acoesRestantes -= ordem.qtde;
-            capitalCaptado += ordem.qtde * ordem.preco;
-            acoesSpan.textContent = acoesRestantes.toLocaleString();
-            capitalSpan.textContent = capitalCaptado.toLocaleString(undefined, { minimumFractionDigits: 2 });
-          }
+      if (comprador.caixa >= custo) {
+        // Executar compra
+        comprador.caixa -= custo;
 
-          // Remove a ordem e atualiza
-          sellOrders.splice(i, 1);
+        if (ordem.bradesco) {
+          acoesRestantes -= ordem.qtde;
+          capitalCaptado += custo;
+
+          acoesSpan.textContent = acoesRestantes.toLocaleString();
+          capitalSpan.textContent = capitalCaptado.toLocaleString(undefined, { minimumFractionDigits: 2 });
         }
+
+        // Remove ordem executada
+        sellOrders.splice(i, 1);
       }
-
-      atualizarBook();
     }
 
-    function atualizarBook() {
-      sellBookBody.innerHTML = '';
-      sellOrders.slice(0, 20).forEach(ordem => {
-        const row = document.createElement('tr');
-        row.className = 'sell';
-        row.innerHTML = `
-          <td>${ordem.banco}</td>
-          <td>${ordem.qtde.toLocaleString()}</td>
-          <td>R$ ${ordem.preco.toFixed(2)}</td>
-        `;
-        sellBookBody.appendChild(row);
-      });
-    }
+    atualizarBook();
+  }
 
-    function girarTela() {
-      if (screen.orientation && screen.orientation.lock) {
-        document.documentElement.requestFullscreen().then(() => {
-          screen.orientation.lock("landscape").catch(err => {
-            alert("Seu navegador não permite mudar a orientação: " + err);
-          });
+  function atualizarBook() {
+    sellBookBody.innerHTML = '';
+    sellOrders.slice(0, 20).forEach(ordem => {
+      const row = document.createElement('tr');
+      row.className = 'sell';
+      row.innerHTML = `
+        <td>${ordem.banco}</td>
+        <td>${ordem.qtde.toLocaleString()}</td>
+        <td>R$ ${ordem.preco.toFixed(2)}</td>
+      `;
+      sellBookBody.appendChild(row);
+    });
+  }
+
+  function girarTela() {
+    if (screen.orientation && screen.orientation.lock) {
+      document.documentElement.requestFullscreen().then(() => {
+        screen.orientation.lock("landscape").catch(err => {
+          alert("Seu navegador não permite mudar a orientação: " + err);
         });
-      } else {
-        alert("Seu navegador não suporta esta função.");
-      }
+      });
+    } else {
+      alert("Seu navegador não suporta esta função.");
     }
+  }
 
-    setInterval(() => {
-      gerarOrdemBradesco();
-      executarOrdens();
-    }, 1000);
+  // Timer para gerar ordens e executar
+  setInterval(() => {
+    gerarOrdemBradesco();
+    executarOrdens();
+  }, 1000);
   </script>
 </body>
   </html>
