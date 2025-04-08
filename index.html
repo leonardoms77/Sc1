@@ -1,76 +1,13 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>Consulta de Preços - SimCompanies</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f8f8f8; }
-    label, select, button { margin: 10px 0; display: block; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { padding: 8px; border: 1px solid #ccc; text-align: left; }
-    th { background: #eee; }
-  </style>
+  <title>SimCompanies Teste</title>
 </head>
 <body>
-  <h2>Consultar Preços - SimCompanies</h2>
+  <h1>Motor de Foguete Q3</h1>
+  <p>Preço simulado: $ 4.520</p>
 
-  <label for="item">Item:</label>
-  <select id="item">
-    <option value="rocket_engine">Motor de Foguete</option>
-    <option value="steel">Aço</option>
-    <option value="glass">Vidro</option>
-    <option value="electronics">Eletrônicos</option>
-    <option value="fuel">Combustível</option>
-    <!-- Adicione mais se quiser -->
-  </select>
-
-  <label for="quality">Qualidade:</label>
-  <select id="quality">
-    <option value="0">Q0</option>
-    <option value="1">Q1</option>
-    <option value="2">Q2</option>
-    <option value="3">Q3</option>
-    <option value="4">Q4</option>
-    <option value="5">Q5</option>
-  </select>
-
-  <label for="city">Reino:</label>
-  <select id="city">
-    <option value="m1">Magnate</option>
-    <option value="m2">Entrepreneur</option>
-    <option value="m3">Tycoon</option>
-  </select>
-
-  <button onclick="buscarPrecos()">Buscar Preços</button>
-
-  <table id="resultado" style="display:none;">
-    <thead>
-      <tr>
-        <th>Preço</th>
-        <th>Quantidade</th>
-        <th>Vendedor</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <script>
-    function buscarPrecos() {
-      const item = document.getElementById("item").value;
-      const quality = document.getElementById("quality").value;
-      const city = document.getElementById("city").value;
-      const url = `https://api.allorigins.win/raw?url=https://www.simcompanies.com/api/v3/market/all/${item}/${quality}/?city=${city}`;
-
-      fetch(url)
-        .then(response => response.json())
-        .then(data => {
-          const tabela = document.getElementById("resultado");
-          const corpo = tabela.querySelector("tbody");
-          corpo.innerHTML = "";
-          if (data.length === 0) {
-            corpo.innerHTML = "<tr><td colspan='3'>Sem ofertas no momento</td></tr>";
-          } else {
-            data.forEach(oferta => {
-              const linha = document.createElement("tr");
-              linha.innerHTML = `
-                <
+  <button onclick="alert('Isso é só um teste!')">Clique aqui</button>
+</body>
+</html>
