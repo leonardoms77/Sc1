@@ -107,6 +107,29 @@
       document.title = `Ciclo ${ciclo} / ${ciclosTotais}`;
 
       // Aqui você pode chamar os scripts dos players e do Bradesco
+
+  <script>
+  const totalAcoesDiarias = 400000;
+  let acoesRestantesHoje = totalAcoesDiarias;
+
+  function bradescoVende() {
+    if (acoesRestantesHoje <= 0) return;
+
+    // Gera lote aleatório entre 1000 e 10000
+    let lote = Math.floor(Math.random() * 91 + 10) * 100;
+
+    // Garante que não passe do limite diário
+    if (lote > acoesRestantesHoje) {
+      lote = acoesRestantesHoje;
+    }
+
+    // Preço aleatório entre R$38 e R$42 com 0.01 de variação
+    const preco = (Math.floor(Math.random() * 401) + 3800) / 100;
+
+    adicionarOrdemVenda("Bradesco", lote, preco);
+    acoesRestantesHoje -= lote;
+  }
+</script>
       executarCiclo();
 
       if (ciclo >= ciclosTotais) {
