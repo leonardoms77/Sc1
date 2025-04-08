@@ -1,160 +1,162 @@
 <!DOCTYPE html><html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simulador de Book PETR4</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      background: #f4f4f4;
-    }
-    h1 {
-      text-align: center;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-bottom: 20px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #e3e3e3;
-    }
-    #orderBookContainer {
-      max-height: 400px;
-      overflow-y: auto;
-      border: 1px solid #aaa;
-      background: white;
-    }
-    .buy { background-color: #e0f7e9; }
-    .sell { background-color: #fdecea; }
+    body { font-family: sans-serif; padding: 1rem; background: #f7f7f7; }
+    h1 { text-align: center; }
+    .container { display: flex; justify-content: space-between; gap: 1rem; }
+    .book { width: 48%; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 300px; overflow-y: scroll; }
+    .order { display: flex; justify-content: space-between; padding: 0.25rem 0; border-bottom: 1px solid #eee; }
+    .controls, .portfolios { margin-top: 1rem; background: white; padding: 1rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    textarea { width: 100%; height: 80px; margin-top: 0.5rem; }
+    button { margin-top: 0.5rem; padding: 0.5rem 1rem; }
+    .portfolios div { margin-bottom: 0.25rem; }
   </style>
 </head>
 <body>
-  <h1>Simulador de Book PETR4</h1>  <h2>Portfólios</h2>
-  <table id="portfolio">
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>Caixa</th>
-        <th>Quantidade PETR4</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>  <h2>Book de Ofertas</h2>
-  <div id="orderBookContainer">
-    <table id="orderBook">
-      <thead>
-        <tr>
-          <th>Tipo</th>
-          <th>Player</th>
-          <th>Quantidade</th>
-          <th>Preço</th>
-          <th>Ação</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+  <h1>Simulador de Book PETR4</h1>
+  <div class="container">
+    <div class="book" id="buyBook">
+      <h3>Ordem de Compra</h3>
+    </div>
+    <div class="book" id="sellBook">
+      <h3>Ordem de Venda</h3>
+    </div>
+  </div>  <div class="controls">
+    <h3>Inserir Ordem Manual</h3>
+    <textarea id="manualOrder" placeholder="UBS BUY 1000 @ 36.50"></textarea>
+    <button onclick="submitOrder()">Enviar Ordem</button><h3>Script do Robô (1 ordem por rodada)</h3>
+<textarea id="botScript" placeholder="XP SELL 500 @ 37.20\nCS BUY 300 @ 36.90"></textarea>
+<button onclick="nextRound()">Executar Rodada</button>
+<button onclick="togglePause()">Pausar / Continuar</button>
+<button onclick="saveState()">Salvar</button>
+<button onclick="loadState()">Carregar</button>
+
+  </div>  <div class="portfolios">
+    <h3>Portfólios</h3>
+    <div id="portfolios"></div>
   </div>  <script>
-    const players = [
-      'UBS Pactual', 'Credit Suisse', 'Morgan Stanley', 'Merrill Lynch', 'XP'
-    ];
+    const players = ["UBS", "CS", "MS", "Merrill", "XP"];
+    let portfolio = {};
+    let buyBook = [];
+    let sellBook = [];
+    let paused = false;
 
-    const portfolio = {};
-    players.forEach(p => {
-      portfolio[p] = { caixa: 700_000_000, petr4: 0 };
-    });
+    players.forEach(p => portfolio[p] = { cash: 700000000, shares: 0 });
 
-    const orderBook = [];
+    function renderBooks() {
+      const buyEl = document.getElementById("buyBook");
+      const sellEl = document.getElementById("sellBook");
+      buyEl.innerHTML = '<h3>Ordem de Compra</h3>';
+      sellEl.innerHTML = '<h3>Ordem de Venda</h3>';
 
-    function renderPortfolio() {
-      const tbody = document.querySelector("#portfolio tbody");
-      tbody.innerHTML = "";
+      buyBook.sort((a,b) => b.price - a.price);
+      sellBook.sort((a,b) => a.price - b.price);
+
+      buyBook.slice(0,20).forEach(o => {
+        buyEl.innerHTML += `<div class='order'><span>${o.player}</span><span>${o.qty} @ ${o.price.toFixed(2)}</span></div>`;
+      });
+
+      sellBook.slice(0,20).forEach(o => {
+        sellEl.innerHTML += `<div class='order'><span>${o.player}</span><span>${o.qty} @ ${o.price.toFixed(2)}</span></div>`;
+      });
+    }
+
+    function renderPortfolios() {
+      const port = document.getElementById("portfolios");
+      port.innerHTML = '';
       players.forEach(p => {
-        const { caixa, petr4 } = portfolio[p];
-        tbody.innerHTML += `
-          <tr>
-            <td>${p}</td>
-            <td>R$ ${caixa.toLocaleString('pt-BR')}</td>
-            <td>${petr4.toLocaleString('pt-BR')}</td>
-          </tr>
-        `;
+        const cash = (portfolio[p].cash / 1000000).toFixed(2);
+        const shares = portfolio[p].shares;
+        port.innerHTML += `<div><strong>${p}</strong> - R$ ${cash} mi | ${shares} ações</div>`;
       });
     }
 
-    function renderOrderBook() {
-      const tbody = document.querySelector("#orderBook tbody");
-      tbody.innerHTML = "";
-      orderBook.forEach((ordem, idx) => {
-        tbody.innerHTML += `
-          <tr class="${ordem.tipo}">
-            <td>${ordem.tipo.toUpperCase()}</td>
-            <td>${ordem.player}</td>
-            <td>${ordem.quantidade.toLocaleString('pt-BR')}</td>
-            <td>R$ ${ordem.preco.toFixed(2)}</td>
-            <td>
-              ${ordem.tipo === 'sell' && ordem.player !== 'UBS Pactual' ? `<button onclick="executarOrdem(${idx})">Comprar</button>` :
-                 ordem.tipo === 'buy' && ordem.player !== 'UBS Pactual' ? `<button onclick="executarOrdem(${idx})">Vender</button>` :
-                 ''}
-            </td>
-          </tr>
-        `;
-      });
+    function parseOrder(line) {
+      const match = line.trim().match(/(\w+)\s+(BUY|SELL)\s+(\d+)\s+@\s+(\d+(\.\d+)?)/i);
+      if (!match) return null;
+      return {
+        player: match[1].toUpperCase(),
+        side: match[2].toUpperCase(),
+        qty: parseInt(match[3]),
+        price: parseFloat(match[4])
+      };
     }
 
-    function executarOrdem(idx) {
-      const ordem = orderBook[idx];
-      const quantidade = ordem.quantidade;
-      const preco = ordem.preco;
-      const total = quantidade * preco;
+    function submitOrder() {
+      const text = document.getElementById("manualOrder").value;
+      const order = parseOrder(text);
+      if (!order) return alert("Ordem inválida");
+      processOrder(order);
+      renderBooks();
+      renderPortfolios();
+    }
 
-      if (ordem.tipo === 'sell') {
-        if (portfolio['UBS Pactual'].caixa >= total) {
-          portfolio['UBS Pactual'].caixa -= total;
-          portfolio['UBS Pactual'].petr4 += quantidade;
-          portfolio[ordem.player].caixa += total;
-          portfolio[ordem.player].petr4 -= quantidade;
-        } else {
-          alert('Caixa insuficiente para comprar');
-          return;
-        }
-      } else if (ordem.tipo === 'buy') {
-        if (portfolio['UBS Pactual'].petr4 >= quantidade) {
-          portfolio['UBS Pactual'].caixa += total;
-          portfolio['UBS Pactual'].petr4 -= quantidade;
-          portfolio[ordem.player].caixa -= total;
-          portfolio[ordem.player].petr4 += quantidade;
-        } else {
-          alert('PETR4 insuficiente para vender');
-          return;
-        }
+    function processOrder(order) {
+      const book = order.side === "BUY" ? buyBook : sellBook;
+      book.push(order);
+      matchOrders();
+    }
+
+    function nextRound() {
+      if (paused) return;
+      const lines = document.getElementById("botScript").value.split("\n").filter(l => l.trim());
+      if (lines.length === 0) return;
+      const order = parseOrder(lines.shift());
+      if (order) processOrder(order);
+      document.getElementById("botScript").value = lines.join("\n");
+      renderBooks();
+      renderPortfolios();
+    }
+
+    function togglePause() {
+      paused = !paused;
+      alert(paused ? "Pausado" : "Continuando");
+    }
+
+    function matchOrders() {
+      buyBook.sort((a,b) => b.price - a.price);
+      sellBook.sort((a,b) => a.price - b.price);
+
+      while (buyBook.length && sellBook.length && buyBook[0].price >= sellBook[0].price) {
+        const buy = buyBook[0];
+        const sell = sellBook[0];
+        const qty = Math.min(buy.qty, sell.qty);
+        const price = sell.price;
+
+        buy.qty -= qty;
+        sell.qty -= qty;
+
+        portfolio[buy.player].cash -= qty * price;
+        portfolio[buy.player].shares += qty;
+
+        portfolio[sell.player].cash += qty * price;
+        portfolio[sell.player].shares -= qty;
+
+        if (buy.qty === 0) buyBook.shift();
+        if (sell.qty === 0) sellBook.shift();
       }
-
-      orderBook.splice(idx, 1);
-      renderPortfolio();
-      renderOrderBook();
     }
 
-    function gerarOrdensFalsas() {
-      const tipos = ['buy', 'sell'];
-      const precos = [35.2, 35.1, 35.0, 34.9, 34.8, 35.3, 35.4, 35.5];
-
-      for (let i = 0; i < 30; i++) {
-        const tipo = tipos[Math.floor(Math.random() * 2)];
-        const player = players[Math.floor(Math.random() * players.length)];
-        const quantidade = Math.floor(Math.random() * 30 + 1) * 100;
-        const preco = precos[Math.floor(Math.random() * precos.length)];
-
-        orderBook.push({ tipo, player, quantidade, preco });
-      }
+    function saveState() {
+      const state = JSON.stringify({ buyBook, sellBook, portfolio });
+      localStorage.setItem("bookState", state);
+      alert("Estado salvo!");
     }
 
-    gerarOrdensFalsas();
-    renderPortfolio();
-    renderOrderBook();
+    function loadState() {
+      const state = JSON.parse(localStorage.getItem("bookState"));
+      if (!state) return alert("Nada salvo!");
+      buyBook = state.buyBook || [];
+      sellBook = state.sellBook || [];
+      portfolio = state.portfolio || {};
+      renderBooks();
+      renderPortfolios();
+    }
+
+    renderBooks();
+    renderPortfolios();
   </script></body>
 </html>
