@@ -94,6 +94,36 @@ function cicloPregao() {
 // Começa a simular os ciclos
 setInterval(cicloPregao, 1000);
 </script>
+
+  <script>
+const bookCompras = [];
+const bookVendas = [];
+const historicoOrdens = [];
+
+function adicionarOrdem(tipo, player, quantidade, preco) {
+  const ordem = {
+    id: Date.now() + Math.random(),
+    tipo,           // 'compra' ou 'venda'
+    player,
+    quantidade,
+    preco,
+    status: 'ativa',
+  };
+
+  if (tipo === 'compra') {
+    bookCompras.push(ordem);
+    bookCompras.sort((a, b) => b.preco - a.preco); // maior preço primeiro
+  } else {
+    bookVendas.push(ordem);
+    bookVendas.sort((a, b) => a.preco - b.preco); // menor preço primeiro
+  }
+
+  historicoOrdens.push(ordem);
+
+  atualizarLivros();
+  tentarExecutarOrdens();
+}
+  </script>
   
 </body>
 </html>
